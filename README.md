@@ -6,17 +6,12 @@
 
 ## Content
 
--- [Disclaimer](#Disclaimer)
-
--- [How to Run Lycophron](#How-to-Run-Lycophron)
-
--- [Further Documentation](#Further-Documentation)
-
--- [Known Bugs](#Known-Bugs)
-
--- [How to Contribute](#How-to-Contribute)
-
--- [License](#License)
+[Disclaimer](#Disclaimer)  
+[How to Run Lycophron](#How-to-Run-Lycophron)  
+[Further Documentation](#Further-Documentation)  
+[Known Bugs](#Known-Bugs)  
+[How to Contribute](#How-to-Contribute)  
+[License](#License)  
 
 
 
