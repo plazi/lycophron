@@ -54,9 +54,7 @@ assignees: ''
 
 ## Link to Database(s) Used
 <!--- You probably were running this with a specific database. Please, provide the link below so I can have access to the same dataset. -->
-
 <!--- Both Google Drive or Dropbox links are fine. Just make sure to make them shareable. -->
-
 
 ------
 >*This template is a modified version of the bug report template generated at [The Curious Case of the Issue and Pull Request Template](https://www.talater.com/open-source-templates/#/). It also took a bit from this [enjoyable read here](https://medium.com/nyc-planning-digital/writing-a-proper-github-issue-97427d62a20f).*
