@@ -13,25 +13,20 @@ assignees: ''
 <!--- Provide a detailed description of the bug encountered -->
 
 
-
 ## Context
 <!--- What were you trying to do? -->
-
 
 
 ## Expected behavior
 <!--- What should have happen? -->
 
 
-
 ## Observed behavior
 <!--- What actually happened? -->
 
 
-
 ## Screenshots (If any)
 <!--- If you can provide screenshoots, please, do. It helps. A lot. -->
-
 
 
 ## Your environment
@@ -42,14 +37,12 @@ assignees: ''
 * <u>***Lycophron Version***</u>:
 
 
-
 # Steps to Reproduce
 <!--- Please, provide a link to a screencast showing the steps that led to the bug or list a series of unambiguous steps to reproduce the problem -->
 
 1. 
 2. 
 3. 
-
 
 
 ## Link to Database(s) Used

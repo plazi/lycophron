@@ -13,23 +13,20 @@ assignees: ''
 <!--- Provide a more detailed introduction of the issue, or, if you will, using user stories work just fine as well -->
 
 
-
 ## Context
 <!--- What's the problem your feature is trying to solve? -->
-
 
 
 ## Expected behavior
 <!--- What's the expected specific output from your feature, in your opinion? -->
 
 
-
 ## To be added at...
+
 - [ ] Current version, next minor release
 - [ ] Current version, not that urgent
 - [ ] Next version
 - [ ] Future, don't worry about it
-
 
 
 ## Examples or external information
