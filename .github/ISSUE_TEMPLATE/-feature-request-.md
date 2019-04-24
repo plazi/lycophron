@@ -1,5 +1,5 @@
 ---
-name: "[Feature request] <add-short-title>"
+name: "[Feature request]"
 about: Suggest an idea for this project
 title: ''
 labels: enhancement
