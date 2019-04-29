@@ -144,14 +144,21 @@ def update_resource_info(database, paper, url, key):
     #Creates a loop checker for all fields in the dictionary.
     for each in zenodo_resource_data:
 
-        #Compares if the paper data is the same as the zenodo data for each field in the dictionary.
-        if str(zen.json()[zenodo_resource_data[each]]) != str(paper.__getattribute__(each)):
+        #Compares if the paper data is the same as the zenodo data for each field in the dictionary, and, if the dictionary key doesn't exist, continues the loop without breaking the program.
+        try:
+            if str(zen.json()[zenodo_resource_data[each]]) != str(paper.__getattribute__(each)):
 
-            #Writes the new information, if they are different, into the database.
-            database.write_checking_internal_id(paper.internal_id, each, zenodo_info)
+                #Writes the new information, if they are different, into the database.
+                database.write_checking_internal_id(paper.internal_id, each, zenodo_info)
 
-            #Change the state of the variable that will define what this function will return.
-            overwritten_checker = True
+                #Need to write the 'sent' status on the pdf_status field here. 
+
+                #Change the state of the variable that will define what this function will return.
+                overwritten_checker = True
+
+        except:
+            #Continues the loop in case of one of the dictionary keys  doesn't exist.
+            continue
 
 
     #Returns the checking variable. If after all fields were checked for the provided paper, returns the default value, False.
@@ -219,6 +226,7 @@ def push_PDFs(database, sandbox="off", marcus="off"):
 
             #Call the function that will cross-check each of the zenodo resource fields for updated information, overwritting this field for that respective paper if a new value is observed.
             update_resource_info(database, each, url, key)
+
 
         #Better to update this when I write the function status_code(), and use the if strategy adopted in the function 'publish', which is, if NOT the good code, then do this.. else, do the good code routine (update database with the new metadata).
         elif zen.status_code == 400:
