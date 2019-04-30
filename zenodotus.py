@@ -263,9 +263,15 @@ def publish(database, sandbox="off", marcus="off"):
         zen = requests.post(publishing_url, params={'access_token': key})
 
         if zen.status_code != 202:
+            print(each.__getattribute__("internal_id"))
+            print(each.__getattribute__("creators"))
+            print(zen.json())
             error_checker = True
 
         else:
+            print(each.__getattribute__("internal_id"))
+            print(each.__getattribute__("creators"))
+            print(zen.json())
             update_resource_info(database, each, url, key)
 
     if error_checker == False:
