@@ -151,7 +151,7 @@ def update_resource_info(database, paper, url, key):
                 #Writes the new information, if they are different, into the database.
                 database.write_checking_internal_id(paper.internal_id, each, zenodo_info)
 
-                #Need to write the 'sent' status on the pdf_status field here. 
+                #Need to write the 'sent' status on the pdf_status field here.
 
                 #Change the state of the variable that will define what this function will return.
                 overwritten_checker = True
@@ -260,11 +260,9 @@ def publish(database, sandbox="off", marcus="off"):
 
         publishing_url = url + "/" + each.zenodo_id + "/actions/publish"
 
-        zen = requests.post(url, params={'access_token': key})
+        zen = requests.post(publishing_url, params={'access_token': key})
 
         if zen.status_code != 202:
-            print(error)
-            print(zen.json())
             error_checker = True
 
         else:
