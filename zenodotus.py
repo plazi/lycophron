@@ -151,7 +151,7 @@ def update_resource_info(database, paper, url, key):
             if str(zen.json()[zenodo_resource_data[each]]) != str(paper.__getattribute__(each)):
 
                 #Writes the new information, if they are different, into the database.
-                database.write_checking_internal_id(paper.internal_id, each, zenodo_info)
+                database.write_checking_internal_id(paper.internal_id, each, zen.json()[zenodo_resource_data[each]])
 
                 #Need to write the 'sent' status on the pdf_status field here.
 
