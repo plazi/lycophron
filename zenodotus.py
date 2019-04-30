@@ -146,6 +146,8 @@ def update_resource_info(database, paper, url, key):
 
         #Compares if the paper data is the same as the zenodo data for each field in the dictionary, and, if the dictionary key doesn't exist, continues the loop without breaking the program.
         try:
+            print(zen.json()[zenodo_resource_data[each]])
+            print(paper.__getattribute__(each))
             if str(zen.json()[zenodo_resource_data[each]]) != str(paper.__getattribute__(each)):
 
                 #Writes the new information, if they are different, into the database.
