@@ -37,7 +37,7 @@ assignees: ''
 * <u>***Lycophron Version***</u>:
 
 
-# Steps to Reproduce
+## Steps to Reproduce
 <!--- Please, provide a link to a screencast showing the steps that led to the bug or list a series of unambiguous steps to reproduce the problem -->
 
 1. 
