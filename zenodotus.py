@@ -24,12 +24,12 @@ def token_switch(sandbox="off", marcus="off"):
         if marcus == "off":
 
             #Access token name = sandbox_doi_service_plazi
-            return "6R6LCyqt7qSskQZMmN9RtnOd7KR59IH977deYBfbzJjOaXnN4cFktWHCmwfn"
+            return "INSERT-API-KEY-HERE"
 
         else:
             #Access token Name = mguidoti_sandbox
             print("marcus mode")
-            return "3QbSCaJML0Ein4RgGB3ruAhu5xG7sBhi6rdK5DkmcN390HMaSeY2gckrabZJ"
+            return "INSERT-API-KEY-HERE"
 
 
     else:
@@ -37,12 +37,12 @@ def token_switch(sandbox="off", marcus="off"):
         if marcus == "off":
 
             #Access token name = doi_service_plazi
-            return "5izwuFcjcN9Vk7En8JNeP6PqVe2oM1KIRxVEfvCGoJ4rW6cYyck5LBIWmB1v"
+            return "INSERT-API-KEY-HERE"
 
         else:
             #Access token Name = mguidoti
             print("marcus mode")
-            return "yoCuTRygTHb0YSQ3UQY45Rj9JfcJhWhVXXvV3ZTRAQbTuiZY7KHD2fWg8S1j"
+            return "INSERT-API-KEY-HERE"
 
 
 def push_data(database, sandbox="off", marcus="off"):
