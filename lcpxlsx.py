@@ -2,6 +2,7 @@ import os
 import openpyxl as opxl
 import random
 import lcpunit
+import sys
 
 #As each type of database will have its own python library, and therefore, code, I'll create a class for each one of them in the future. For v1, only *xls and *.xlsx are being accepted. I need to see and test if *.csv files can be read with this same code, through openpyxl.py.
 class Xls():
@@ -32,6 +33,8 @@ class Xls():
         Xls("D:/spreadsheet.xlsx").
 
         """
+
+        sys.stdout.reconfigure(encoding='utf-8')
 
         #Sets <file_path> attribute.
         self.file_path = file_path
@@ -109,7 +112,7 @@ class Xls():
         self.get_row_index("upload_type").
 
         """
-        
+
         #A loop iteraction to access every row of the database, starting from the row #2 to avoid the header and adding one at the end because range() is not inclusive.
         for row in range (2, ((self.working_sheet.max_row) + 1)):
 
@@ -158,11 +161,14 @@ class Xls():
                 count += 1
 
         #If counter equals to zero, no empty cells was find in this column, return True.
+        #print("printing count of errors found in")
+        #print(field_name)
+        #print(count)
         if count == 0:
             return True
 
         #If counter equals to the number of rows (minus one because of the header), adds a specific error message to indicate that all cells are empty for this specific column.
-        elif count == ((self.working_sheet.max_row)-1):
+        elif count == ((self.working_sheet.max_row) - 1):
             self.append_to_error_dict((str(field_name) + " missing:"), "Missing all of them.")
             return False
 
@@ -597,6 +603,8 @@ class Xls():
 
         list_only = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language"]
 
+        #list_only = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license", "partof_title", "conference_title", "conference_dates", "conference_place", "conference_url", "conference_session", "conference_session_part", "language"]
+
         list_required = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license"]
 
         dict_mult = {"creator": "False",
@@ -659,6 +667,8 @@ class Xls():
         #Should think about standards, if true will always carry an error status, or if its false that will do it. I prefer the secodn, however, I've used the first as well. Should fix this for the sake of consistency.
         #Should come up with a standard dictionary error messages, and fix when to call it. Mostly, I'll be calling in this function, while appending messages in the checkers.
 
+        #return 0
+
         if self.check_all_fields() == True:
 
             if self.check_data("zenodo_status") == False:
@@ -711,15 +721,12 @@ class Xls():
 
                         print(self.error_messages)
 
-                        #This menas that the PDFs are not validy, but the rest of the data was sent already.
+                        #This means that the PDFs are not validy, but the rest of the data was sent already.
                         return 6
 
         else:
             #If any field presented a problem after our initial check, the code will come here.
             print(self.error_messages)
-
-
-
 
 
 #EH SO GERAR A QUE VAI LER LINHA A LINHA COLETANDO A INFORMACAO E CRIANDO INSTANCIAS DO PAPER
@@ -758,10 +765,17 @@ class Xls():
                         "description": "",
                         "access_right": "",
                         "license": "",
+                        "partof_title": "",
                         "journal_title": "",
                         "journal_volume": "",
                         "journal_issue": "",
                         "journal_pages": "",
+                        #"conference_title": "",
+                        #"conference_dates": "",
+                        #"conference_place": "",
+                        #"conference_url": "",
+                        #"conference_session": "",
+                        #"conference_session_part": "",
                         "language": "",
                         "communities": "",
                         "keywords": "",
@@ -786,5 +800,6 @@ class Xls():
                         dict_temp[each] = self.get_data(each, row)
 
                 list_of_papers.append(lcpunit.Paper(dict_temp))
+
 
         return list_of_papers

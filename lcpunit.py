@@ -56,12 +56,22 @@ class Paper():
         self.journal_volume = data["metadata"]["journal_volume"]      #string
         self.journal_issue = data["metadata"]["journal_issue"]      #string
         self.journal_pages = data["metadata"]["journal_pages"]      #string
+        #self.partof_title = data["metadata"]["partof_title"]
+        #self.conference_title = data["metadata"]["conference_title"]
+        #self.conference_dates = data["metadata"]["conference_dates"]
+        #self.conference_place = data["metadata"]["conference_place"]
+        #self.conference_url = data["metadata"]["conference_url"]
+        #self.conference_session = data["metadata"]["conference_session"]
+        #self.conference_session_part = data["metadata"]["conference_session_part"]
         self.language = data["metadata"]["language"]      #string
         self.notes = data["metadata"]["notes"]
 
     def zenodo_metadata(self):
 
-        metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language", "notes"]
+
+        #metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language", "notes"]
+
+        metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "partof_title", "conference_title", "conference_dates", "conference_place", "conference_url", "conference_session", "conference_session_part", "language", "notes"]
 
         dict = {}
         metadata_dict = {}
