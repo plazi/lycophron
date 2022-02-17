@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "lycophron"
+version = "0.0.1"
+description = "Lycophron project."
+authors = [
+    "ctrl-alt-soneca"
+]
+packages = [
+    { include = "lycophron" },
+    { include = "lycophron/**/*.py" },
+]
+
+[tool.poetry.dependencies]
+python = "^3.7.9"
+
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.2"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.poetry.scripts]
+lycophron = "lycophron.cli:main"

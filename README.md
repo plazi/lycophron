@@ -14,6 +14,9 @@ pip install pip-tools
 
 # Install Python requirements
 (venv) pip-sync requirements.dev.txt requirements.txt
+
+# Install lycophron 
+(venv) python -m pip install .
 ```
 
 ### Dependency management

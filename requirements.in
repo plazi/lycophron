@@ -2,3 +2,4 @@ faker
 sqlalchemy-utils
 SQLAlchemy
 click
+frictionless
