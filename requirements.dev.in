@@ -5,4 +5,4 @@ flake8-bugbear
 pep8-naming
 ipython
 isort
-pip - tools
+pip-tools
