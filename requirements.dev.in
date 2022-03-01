@@ -1,0 +1,8 @@
+black
+flake8
+flake8-colors
+flake8-bugbear
+pep8-naming
+ipython
+isort
+pip-tools
