@@ -42,6 +42,7 @@ class Paper():
         self.doi = data["metadata"]["doi"]      #string
         self.zenodo_prereserved = data["metadata"]["zenodo_prereserve"]         #string
         self.upload_type = data["metadata"]["upload_type"]          #string
+        #self.image_type = data["metadata"]["image_type"]
         self.publication_type = data["metadata"]["publication_type"]    #string
         self.publication_date = data["metadata"]["publication_date"]    #string
         self.title = data["metadata"]["title"]          #string
@@ -64,14 +65,18 @@ class Paper():
         #self.conference_session = data["metadata"]["conference_session"]
         #self.conference_session_part = data["metadata"]["conference_session_part"]
         self.language = data["metadata"]["language"]      #string
-        self.notes = data["metadata"]["notes"]
+        #self.notes = data["metadata"]["notes"]
 
     def zenodo_metadata(self):
 
+        #For regular articles
+        metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "doi", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language", "notes"]
 
-        #metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language", "notes"]
+        #For conference papers
+        #metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "partof_title", "conference_title", "conference_dates", "conference_place", "conference_url", "conference_session", "conference_session_part", "language", "notes"]
 
-        metadata_fields = ["upload_type", "publication_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities", "partof_title", "conference_title", "conference_dates", "conference_place", "conference_url", "conference_session", "conference_session_part", "language", "notes"]
+        #For images
+        #metadata_fields = ["upload_type", "image_type", "publication_date", "title", "creators", "description", "access_right", "license", "keywords", "contributors", "communities"]
 
         dict = {}
         metadata_dict = {}

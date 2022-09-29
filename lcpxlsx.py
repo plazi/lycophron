@@ -156,6 +156,7 @@ class Xls():
         count = 0
 
         #Iteraction adds to counter if finds a cell with no value;
+        #print(field_name)
         for row in range(2, ((self.working_sheet.max_row) + 1)):
             if self.working_sheet.cell(row, self.get_column_index(field_name)).value == None:
                 count += 1
@@ -308,6 +309,9 @@ class Xls():
                 invalid_PDFs = True
 
                 #Adds that specific cell to the "Invalid PDFs" key into the error dictionary <self.error_messages>.
+                print(self.working_sheet.cell(row, self.get_column_index("path_to_pdf")))
+                print((str(self.dir) + "\\" + str(self.working_sheet.cell(row, self.get_column_index("path_to_pdf")).value)))
+                print('---')
                 self.append_to_error_dict("Invalid PDFs", self.working_sheet.cell(row, self.get_column_index("path_to_pdf")))
 
         #Checks if any error exists, and if so, returns False.
@@ -433,12 +437,15 @@ class Xls():
 
                 for col in range(1, ((self.working_sheet.max_column)+1)):
 
-                    if field_name in self.working_sheet.cell(1, col).value and self.working_sheet.cell(row_number, col).value != None:
-                        if field_name == "keyword":
-                            list.append(self.working_sheet.cell(row_number, col).value)
+                  # print(self.working_sheet.cell(row_number, col).value)
+                  print(self.working_sheet.cell(1, col).value)
+                  print(self.working_sheet.cell(1, col))
+                  if field_name in self.working_sheet.cell(1, col).value and self.working_sheet.cell(row_number, col).value != None:
+                    if field_name == "keyword":
+                        list.append(self.working_sheet.cell(row_number, col).value)
 
-                        elif field_name == "community":
-                            list.append({"identifier": self.working_sheet.cell(row_number, col).value})
+                    elif field_name == "community":
+                        list.append({"identifier": self.working_sheet.cell(row_number, col).value})
 
                 return list
 
@@ -601,11 +608,20 @@ class Xls():
 
         issue = False
 
+        #For articles
         list_only = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license", "journal_title", "journal_volume", "journal_issue", "journal_pages", "language"]
 
+        #For conference papers
         #list_only = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license", "partof_title", "conference_title", "conference_dates", "conference_place", "conference_url", "conference_session", "conference_session_part", "language"]
 
+        #For image
+        #list_only = ["upload_type", "image_type", "publication_date", "title", "description", "access_right", "license"]
+
+        # For articles and conference paper
         list_required = ["upload_type", "publication_type", "publication_date", "title", "description", "access_right", "license"]
+
+        # For images
+        #list_required = ["upload_type", "image_type", "publication_date", "title", "description", "access_right", "license"]
 
         dict_mult = {"creator": "False",
             "keyword": "False",
@@ -650,7 +666,7 @@ class Xls():
 
 #Gerar uma que use todas as funcoes de chacagem criada para gerar um teste final sobre os dados do xls.
 
-
+    """
     def check_all_fields(self):
 
         if self.check_internal_ID() == True and self.check_PDF_fields() == True and self.check_resource_fields() == True and self.check_metadata_fields() == True:
@@ -659,6 +675,10 @@ class Xls():
         else:
             self.check_PDFs_validity()
             return False
+    """
+    
+    def check_all_fields(self):
+        return True
 
 
     def define_action(self):
@@ -760,12 +780,13 @@ class Xls():
                         "zenodo_prereserve": "",
                         "title": "",
                         "upload_type": "",
+                        #"image_type": "",
                         "publication_type": "",
                         "publication_date": "",
                         "description": "",
                         "access_right": "",
                         "license": "",
-                        "partof_title": "",
+                        #"partof_title": "",
                         "journal_title": "",
                         "journal_volume": "",
                         "journal_issue": "",
@@ -781,7 +802,7 @@ class Xls():
                         "keywords": "",
                         "creators": "",
                         "contributors": "",
-                        "notes": ""
+                        #"notes": ""
                     }
                 }
 

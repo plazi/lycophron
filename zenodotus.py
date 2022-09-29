@@ -73,10 +73,15 @@ def push_data(database, sandbox="off", marcus="off"):
 
             data = each.zenodo_metadata()
 
+            if data['metadata']['doi'] == None:
+              del data['metadata']['doi']
+
+            print(data)
+
             zen = requests.post(url, params={'access_token': key}, data=json.dumps(data), headers=headers)
 
-            print(zen.status_code)
-            print(zen.json())
+            #print(zen.status_code)
+            #print(zen.json())
 
             internal_id = each.internal_id
 
@@ -89,6 +94,9 @@ def push_data(database, sandbox="off", marcus="off"):
 
                 else:
 
+                    #print(each)
+                    #print(zenodo_resource_data[each])
+                    print(zen.json())
                     update = zen.json()[zenodo_resource_data[each]]
 
                     database.write_checking_internal_id(internal_id, each, update)
@@ -133,7 +141,7 @@ def update_resource_info(database, paper, url, key):
     }
 
     #Sets the URL to retrieve the updated Zenodo deposit metadata.
-    retrieve_info_url = url + "/" + paper.zenodo_id + "?access_token=" + key
+    retrieve_info_url = url + "/" + str(paper.zenodo_id) + "?access_token=" + key
 
     #Gets the updated metadata for a given Zenodo deposit.
     zen = requests.get(retrieve_info_url)
@@ -213,7 +221,7 @@ def push_PDFs(database, sandbox="off", marcus="off"):
             separator = "/"
 
         #Sets the URL to 'create' a PDF for a given depoistion.
-        send_pdf_url = url + "/" + each.zenodo_id + "/files?access_token=" + key
+        send_pdf_url = url + "/" + str(each.zenodo_id) + "/files?access_token=" + key
 
         #Sets the two metadata required for creating a new file within a Zenodo deposition: file name and file path.
         data = {"filename": each.path_to_pdf[each.path_to_pdf.find(separator)+1:]}
@@ -259,7 +267,7 @@ def publish(database, sandbox="off", marcus="off"):
 
     for each in papers:
 
-        publishing_url = url + "/" + each.zenodo_id + "/actions/publish"
+        publishing_url = url + "/" + str(each.zenodo_id) + "/actions/publish"
 
         zen = requests.post(publishing_url, params={'access_token': key})
 
