@@ -1,0 +1,4 @@
+faker
+sqlalchemy-utils
+SQLAlchemy
+click
