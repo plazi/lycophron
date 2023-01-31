@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from db import Model 
 
 engine = create_engine("sqlite:///" + "data.db", echo=True)
 
@@ -15,7 +16,3 @@ class Record(Model):
     id = Column(Integer, primary_key=True)
     doi = Column(Integer)
     deposit_id = Column(Integer)
-
-
-def create_all():
-    Model.metadata.create_all(engine)
