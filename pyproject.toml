@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.7"
 
 [project.scripts]
-lycophron_cli = "lycophron:cli"
+lycophron = "lycophron:cli"
 
 [project.urls]
 "Homepage" = "https://github.com/plazi/lycophron"
