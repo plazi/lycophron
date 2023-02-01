@@ -10,7 +10,8 @@ import click
 
 from lycophron.data import Data
 from lycophron.project import Project
-
+from .app import LycophronApp
+from .db import db
 
 @click.group()
 @click.version_option()
@@ -19,13 +20,26 @@ def lycophron():
 
 
 @lycophron.command()
-@click.argument("keyword")
-def init(keyword):
+@click.option("--token", prompt="Zenodo token", default="CHANGEME")
+@click.option("--force", default=False, is_flag=True)
+def init(token, force):
     """Command to intialize the project"""
+    app = LycophronApp()
 
-    # TODO maybe not
-    project = Project(keyword)
-    project.initialize()
+    if app.is_config_persisted("token") and not force:
+        click.echo(
+            "'token' is already defined in configuration file. Use flag --force to override"
+        )
+    else:
+        app.update_app_config({"token": token}, persist=True)
+    
+    if force:
+        confirm = click.confirm("You are about to destroy the database. Do you want to proceed?")
+        if confirm:
+            app.recreate_project()
+
+    if not app.is_project_initialized():
+        app.init_project()
 
 
 @lycophron.command()
@@ -40,10 +54,10 @@ def validate(inputfile):
 
 @lycophron.command()
 @click.option("--inputfile", required=True)
-@click.option("--update", required=False)
 def load(inputfile):
-    """Loads/Updates CSV into the local DB"""
-    # TODO
+    """Loads CSV into the local DB"""
+    app = LycophronApp()
+    app.project.load_file(inputfile)
     pass
 
 
@@ -67,3 +81,15 @@ def update():
     """Edits and updates records on Zenodo"""
     # TODO
     pass
+
+
+@lycophron.command()
+def configure():
+    """Configures the application."""
+    pass
+
+
+lycophron.add_command(init)
+
+if __name__ == "__main__":
+    lycophron()
