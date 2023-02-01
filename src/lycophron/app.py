@@ -7,8 +7,61 @@
 """Main lycophron app.
 """
 
-from db import LycophronDB
+import os
+from .config import Config
+from .errors import ErrorHandler
+from .project import Project
 
-class LycophronApp(object):
+
+class SingletonMeta(type):
+    """Represents a singleton."""
+
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        """
+        Possible changes to the value of the `__init__` argument do not affect
+        the returned instance.
+        """
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
+
+class LycophronApp(object, metaclass=SingletonMeta):
     def __init__(self) -> None:
-        pass
+        self.config = self.init_config()
+        self.project = Project()
+
+    def init_config(self) -> Config:
+        config = Config(root_path=os.getcwd())
+        config.create()
+        config.load()
+        config.validate()
+        return config
+
+    def init_project(self):
+        self.project.initialize()
+
+    def update_app_config(self, config, persist=False) -> None:
+        if not self.config:
+            # TODO
+            raise ValueError("Config not found")
+        try:
+            self.config.update_config(config, persist)
+        except Exception as e:
+            ErrorHandler.handle_error(e)
+
+    def is_config_persisted(self, config_key):
+        return self.config.is_config_persisted(config_key)
+
+    def recreate_project(self):
+        if not self.project.is_project_initialized():
+            raise ValueError("Project is not initialised!")
+        self.project.recreate_project()
+
+    def is_project_initialized(self):
+        return self.project and self.project.is_project_initialized()
+
+app = LycophronApp()
