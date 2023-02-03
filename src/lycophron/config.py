@@ -1,18 +1,26 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2023 CERN.
+#
+# Lycophron is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+"""Lycophron config classes."""
+
 import os
 import types
 from abc import ABC, abstractmethod
 import logging
 from .errors import ConfigNotFound, ErrorHandler
 
-logger = logging.getLogger('lycophron')
+logger = logging.getLogger("lycophron")
 
 
 class Defaults:
-
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
+    ZENODO_URL = "https://sandbox.zenodo.org/api/deposit/depositions"
 
 
-required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI"]
+required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
 
 
 class Config(dict):

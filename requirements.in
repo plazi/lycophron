@@ -16,3 +16,4 @@ pytest
 marshmallow
 marshmallow-sqlalchemy
 idutils
+celery

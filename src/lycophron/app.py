@@ -2,16 +2,15 @@
 #
 # Copyright (C) 2023 CERN.
 #
-# Invenio App RDM is free software; you can redistribute it and/or modify it
+# Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
-"""Main lycophron app.
-"""
+"""Main lycophron app."""
 
-import logging
 import os
 from .config import Config
 from .errors import ErrorHandler
 from .project import Project
+from .client import create_session
 
 
 class SingletonMeta(type):
@@ -62,11 +61,21 @@ class LycophronApp(object, metaclass=SingletonMeta):
             raise ValueError("Project is not initialised!")
         self.project.recreate_project()
 
+    def validate_project(self):
+        if not self.project.is_project_initialized():
+            raise ValueError("Project is not initialised!")
+        self.project.validate_project()
+
     def is_project_initialized(self):
         return self.project and self.project.is_project_initialized()
 
     def load_file(self, filename):
         self.project.load_file(filename)
+
+    def publish_all_records(self):
+        self.project.publish_all_records(
+            self.config["ZENODO_URL"], self.config["TOKEN"]
+        )
 
 
 app = LycophronApp()
