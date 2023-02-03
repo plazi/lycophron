@@ -8,10 +8,9 @@
 
 import click
 
-from lycophron.data import Data
-from lycophron.project import Project
 from .app import LycophronApp
 from .db import db
+
 
 @click.group()
 @click.version_option()
@@ -32,16 +31,16 @@ def init(token, force):
         )
     else:
         app.update_app_config({"token": token}, persist=True)
-    
+
     if not app.is_project_initialized():
         app.init_project()
     else:
         if force:
-            confirm = click.confirm("You are about to destroy the database. Do you want to proceed?")
+            confirm = click.confirm(
+                "You are about to destroy the database. Do you want to proceed?"
+            )
             if confirm:
                 app.recreate_project()
-
-
 
 
 @lycophron.command()
@@ -50,8 +49,7 @@ def validate(inputfile):
     """Command to validate data"""
 
     # TODO maybe not
-    data = Data(inputfile)
-    data.validate()
+    app = LycophronApp()
 
 
 @lycophron.command()
@@ -60,7 +58,6 @@ def load(inputfile):
     """Loads CSV into the local DB"""
     app = LycophronApp()
     app.load_file(inputfile)
-    pass
 
 
 @lycophron.command()
@@ -74,8 +71,12 @@ def export(outputfile):
 @lycophron.command()
 def publish():
     """Publishes all records to Zenodo"""
-    # TODO
-    pass
+    app = LycophronApp()
+    app.publish_all_records()
+    from .tasks import app as celery_app
+
+    argv = ["worker", "--loglevel=info"]
+    celery_app.worker_main(argv)
 
 
 @lycophron.command()

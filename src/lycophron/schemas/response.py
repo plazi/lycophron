@@ -1,5 +1,5 @@
-
 from marshmallow import Schema, fields
+
 
 class APIResponse(Schema):
     __tablename__ = "api_response"

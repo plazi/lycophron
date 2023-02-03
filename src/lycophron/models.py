@@ -1,3 +1,11 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2023 CERN.
+#
+# Lycophron is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+"""Lycophron data models."""
+
 from sqlalchemy import Column, Integer, String, JSON, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -23,6 +31,8 @@ class Record(Model, Timestamp):
     response = Column(JSON)  # TODO response, errors
     # Already validated by marshmallow
     original = Column(JSON)
+    files = Column(JSON)
+    status = Column(String)
 
     def __repr__(self) -> str:
         return f"Record {self.doi}"

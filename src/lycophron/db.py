@@ -5,6 +5,7 @@
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """Database manager for lycophron. Provides basic functionalities to create a database."""
+
 import json
 import logging
 import datetime
@@ -97,9 +98,10 @@ class LycophronDB(object):
                 id=record["id"],
                 doi=record.get("doi", None),
                 deposit_id=record.get("deposit_id", None),
-                metadata={},
+                remote_metadata={},
                 response={},
-                original=record,
+                original=record["metadata"],
+                files=record["files"],
             )
         )
         try:
@@ -107,7 +109,9 @@ class LycophronDB(object):
         except Exception as e:
             self.session.rollback()
             dev_logger.error(e)
-            raise DatabaseResourceNotModified(f"Record {record['id']} was rejected by database.")
+            raise DatabaseResourceNotModified(
+                f"Record {record['id']} was rejected by database."
+            )
         else:
             repr = record.get("doi", record["id"])
             logger.info(f"Record {repr} was added.")
@@ -128,19 +132,20 @@ class LycophronDB(object):
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
 
-    def update_record_response(self, record: dict, response: dict) -> None:
+    def update_record_response(self, doi: str, response: dict) -> None:
         """Updates a record's last remote response status.
 
-        :param record: local representation of the record.
-        :type record: dict
+        :param doi: record's doi
+        :type doi: str
         :param response: response retrieved from the remote (e.g. Zenodo)
         :type response: dict
         """
         if not self.database_exists():
             raise DatabaseNotFound("Database not found.  Aborting record update.")
 
-        rec = self.session.query(Record).get(record["id"])
+        rec = self.session.query(Record).filter_by(doi=doi)
         rec.response = response
+        rec.deposit_id = response["id"]
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
 
@@ -149,6 +154,29 @@ class LycophronDB(object):
         rec.doi = doi
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
+
+    def update_record_status(self, doi, status):
+        # TODO doi is not guaranteed
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found.  Aborting record update.")
+
+        # TODO sql alchemy yields an error
+
+        rec = self.session.query(Record).filter_by(doi=str(doi)).one_or_none()
+
+        if not rec:
+            raise DatabaseResourceNotModified(f"Record {doi} not found in database.")
+
+        rec.status = status
+        self.session.commit()
+        logger.info(f"Record {doi} status was updated.")
+
+    def get_all_records(self):
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found.  Aborting record fetching.")
+
+        records = self.session.query(Record).all()
+        return records
 
 
 db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
