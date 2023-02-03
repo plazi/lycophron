@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 import logging
 from .errors import ConfigNotFound, ErrorHandler
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('lycophron')
 
 
 class Defaults:
