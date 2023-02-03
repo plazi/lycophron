@@ -7,6 +7,7 @@
 """Main lycophron app.
 """
 
+import logging
 import os
 from .config import Config
 from .errors import ErrorHandler
@@ -63,5 +64,9 @@ class LycophronApp(object, metaclass=SingletonMeta):
 
     def is_project_initialized(self):
         return self.project and self.project.is_project_initialized()
+
+    def load_file(self, filename):
+        self.project.load_file(filename)
+
 
 app = LycophronApp()

@@ -1,3 +1,8 @@
+faker
+sqlalchemy-utils
+SQLAlchemy
+click
+frictionless
 black
 flake8
 flake8-colors
@@ -8,3 +13,6 @@ isort
 pip-tools
 pydocstyle
 pytest
+marshmallow
+marshmallow-sqlalchemy
+idutils

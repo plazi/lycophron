@@ -33,13 +33,15 @@ def init(token, force):
     else:
         app.update_app_config({"token": token}, persist=True)
     
-    if force:
-        confirm = click.confirm("You are about to destroy the database. Do you want to proceed?")
-        if confirm:
-            app.recreate_project()
-
     if not app.is_project_initialized():
         app.init_project()
+    else:
+        if force:
+            confirm = click.confirm("You are about to destroy the database. Do you want to proceed?")
+            if confirm:
+                app.recreate_project()
+
+
 
 
 @lycophron.command()
@@ -57,7 +59,7 @@ def validate(inputfile):
 def load(inputfile):
     """Loads CSV into the local DB"""
     app = LycophronApp()
-    app.project.load_file(inputfile)
+    app.load_file(inputfile)
     pass
 
 

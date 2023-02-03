@@ -5,44 +5,74 @@
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """Database manager for lycophron. Provides basic functionalities to create a database."""
-
+import json
+import logging
+import datetime
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils.functions import create_database, database_exists, drop_database
 from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm import sessionmaker
-import logging
 
-from .errors import DatabaseAlreadyExists
+from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
 from .app import app
+from .models import Record, Model
 
-Model = declarative_base()
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("lycophron")
+dev_logger = logging.getLogger("lycophron_dev")
+
+
+def custom_serializer(o):
+    if isinstance(o, datetime.datetime):
+        return str(o)
+    else:
+        # raises TypeError: o not JSON serializable
+        return json.dumps(o, default=str)
+
+
+class CustomJSONEncoder(json.JSONEncoder):
+    """ """
+
+    def default(self, o):
+        if isinstance(o, datetime.datetime):
+            return str(o)
+        else:
+            # raises TypeError: o not JSON serializable
+            return json.JSONEncoder.default(self, o)
 
 
 class LycophronDB(object):
     """Manages a lycophron DB."""
 
     def __init__(self, uri) -> None:
-        self.engine = create_engine(uri)
+        self.engine = create_engine(uri, json_serializer=custom_serializer)
         _session_factory = sessionmaker(bind=self.engine)
         self.session = scoped_session(_session_factory)
 
     def init_db(self) -> None:
         """Initializes the lycophron database."""
-        if self.database_exists():
-            raise DatabaseAlreadyExists(
-                "A database is already created."
-            )
-        create_database(self.engine.url)
+        self._create_database()
         Model.metadata.create_all(self.engine)
-        logger.info("Database created!")
+        logger.info("Database initialized.")
+
+    def _drop_database(self) -> None:
+        """Drops the database"""
+        drop_database(self.engine.url)
+        logger.info("Database was destroyed.")
+
+    def _create_database(self) -> None:
+        """Creates a database"""
+        if self.database_exists():
+            raise DatabaseAlreadyExists("A database is already created.")
+        create_database(self.engine.url)
+        logger.info("Database created.")
 
     def recreate_db(self) -> None:
         """Drop and recreate database."""
-        logger.warn("Recreating database. THIS WILL DESTROY THE CURRENT DATABASE, PROCEED WITH CAUTION.")
-        drop_database(self.engine.url)
+        logger.warn(
+            "Recreating database. THIS WILL DESTROY THE CURRENT DATABASE, PROCEED WITH CAUTION."
+        )
+        self._drop_database()
         create_database(self.engine.url)
         Model.metadata.create_all(self.engine)
 
@@ -53,6 +83,72 @@ class LycophronDB(object):
         :rtype: bool
         """
         return database_exists(self.engine.url)
+
+    def add_record(self, record: dict) -> None:
+        """Adds a record to the DB.
+
+        :param record: deserialized record
+        :type record: dict
+        """
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found. Aborting record add.")
+        self.session.add(
+            Record(
+                id=record["id"],
+                doi=record.get("doi", None),
+                deposit_id=record.get("deposit_id", None),
+                metadata={},
+                response={},
+                original=record,
+            )
+        )
+        try:
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            dev_logger.error(e)
+            raise DatabaseResourceNotModified(f"Record {record['id']} was rejected by database.")
+        else:
+            repr = record.get("doi", record["id"])
+            logger.info(f"Record {repr} was added.")
+
+    def update_record_remote_metadata(self, record: dict, metadata: dict) -> None:
+        """Updates a record's metadata in the DB.
+
+        :param record: local representation of the record.
+        :type record: dict
+        :param metadata: remote's record metadata (e.g. current metadata on Zenodo)
+        :type metadata: dict
+        """
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found. Aborting record update.")
+
+        rec = self.session.query(Record).get(record["id"])
+        rec.remote_metadata = metadata
+        self.session.commit()
+        logger.info(f"Record {rec.doi} was updated.")
+
+    def update_record_response(self, record: dict, response: dict) -> None:
+        """Updates a record's last remote response status.
+
+        :param record: local representation of the record.
+        :type record: dict
+        :param response: response retrieved from the remote (e.g. Zenodo)
+        :type response: dict
+        """
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found.  Aborting record update.")
+
+        rec = self.session.query(Record).get(record["id"])
+        rec.response = response
+        self.session.commit()
+        logger.info(f"Record {rec.doi} was updated.")
+
+    def update_record_doi(self, record, doi):
+        rec = self.session.query(Record).get(record["id"])
+        rec.doi = doi
+        self.session.commit()
+        logger.info(f"Record {rec.doi} was updated.")
 
 
 db_uri = app.config["SQLALCHEMY_DATABASE_URI"]

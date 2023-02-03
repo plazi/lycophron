@@ -1,68 +1,69 @@
 import csv
 import os
 
-import click
-
-from .errors import DatabaseAlreadyExists, ErrorHandler
+from .errors import (
+    DatabaseAlreadyExists,
+    ErrorHandler,
+    InvalidRecordData,
+)
 from .loaders import LoaderFactory
+from .schemas.record import RecordRow
 
 
 class Project:
     def __init__(self, project_folder=os.getcwd()):
         self.project_folder = project_folder
+        self.errors = []
+
+    def _load_csv(self, filename):
+        with open(filename) as csvfile:
+            yield from csv.DictReader(csvfile, delimiter=",", quotechar='"')
+
+    def _validate_record(self, record) -> bool:
+        # TODO implement
+        if not record["doi"]:
+            raise InvalidRecordData(f"Record {record['id']} is invalid: doi not found.")
+
+        return True
 
     def load_file(self, filename):
+        data = self.process_file(filename)
+        for record in data:
+            self.add_record(record)
+        if len(self.errors):
+            ErrorHandler.handle_error(self.errors)
+
+    def process_file(self, filename):
         print("Loading file!")
-        return
-        file_path = os.path.join(self.project_folder, filename)
-        loader = LoaderFactory.create_loader(filename)
-        loaded_data = loader.load(file_path)
-        deserialized_data = loader.deserializer.deserialize(loaded_data)
+        if not self.is_project_initialized():
+            raise Exception("Project is not initialised.")
+        # file_path = os.path.join(self.project_folder, filename)
+        # factory = LoaderFactory()
+        # loader = factory.create_loader(filename)
+        # loaded_data = loader.load(file_path)
+        row_schema = RecordRow()
+        records = []
+        for data in self._load_csv(filename):
+            try:
+                record = row_schema.load(data)
+            except Exception as e:
+                self.errors.append(e)
+            else:
+                records.append(record)
+        return records
 
-    # def create_csv(self):
-    #     """Create a CSV"""
-    #     header = [
-    #         "id",
-    #         "doi",
-    #         "deposit_id",
-    #         "title",
-    #         "description",
-    #         "creators.name",
-    #         "creators.affiliation",
-    #         "creators.orcid",
-    #         "dwc:kingdom",
-    #         "dwc:order",
-    #         "dwc:family",
-    #         "dwc:collectionCode",
-    #         "related_identifiers.identifier",
-    #         "related_identifiers.relation",
-    #         "files",
-    #     ]
+    def add_record(self, record):
+        # TODO fix too many "from .db import db"
+        from .db import db
 
-    #     with open(self.csv_dir, "w", encoding="UTF8") as f:
-    #         writer = csv.writer(f)
-
-    #         writer.writerow(header)
-
-    #     click.secho("CSV Created!", fg="green")
-
-    # def create_folder(self, create_files_dir="False"):
-    #     """Create a folder"""
-    #     try:
-    #         if create_files_dir == True:
-    #             os.mkdir(self.files_dir)
-    #         else:
-    #             os.mkdir(self.name)
-
-    #         click.secho("Folder Created!", fg="green")
-    #     except FileExistsError:
-    #         click.secho("The folder already exists!", fg="green")
+        try:
+            self._validate_record(record)
+            db.add_record(record)
+        except Exception as e:
+            self.errors.append(e)
 
     def initialize(self):
         """Initialize the project"""
-        # self.create_folder()
-        # self.create_folder(True)
-        # self.create_csv()
         from .db import db
 
         try:
@@ -75,12 +76,10 @@ class Project:
 
         db.recreate_db()
 
-    
     def validate_project(self):
         raise NotImplementedError("Project validation not implemented yet")
 
-    
     def is_project_initialized(self):
         from .db import db
-        
+
         return db.database_exists()
