@@ -1,7 +1,16 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2023 CERN.
+#
+# Lycophron is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+"""Lycophron data serializers."""
+
 from abc import ABC, abstractmethod
 from .format import Format
 
-class SerializerFactory():
+
+class SerializerFactory:
     def create_serializer(self, format):
         return self._get_serializer(format)
 
@@ -19,10 +28,10 @@ class SerializerFactory():
 
 
 class Serializer(ABC):
-
     @abstractmethod
     def serialize(data):
         pass
+
 
 class CSVSerializer(Serializer):
     extension_type = Format.CSV
@@ -31,7 +40,7 @@ class CSVSerializer(Serializer):
         super().__init__()
 
     def serialize(self, data: list) -> list:
-        # [d for d in data] 
+        # [d for d in data]
 
         # breakpoint()
         pass

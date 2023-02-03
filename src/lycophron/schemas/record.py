@@ -12,15 +12,14 @@ import re
 
 from ..errors import RecordValidationError
 
-orcid_regex = re.compile("([0-9]{4}-{1}){3}[0-9]{4}")
-dev_logger = logging.getLogger('lycophron_dev')
+dev_logger = logging.getLogger("lycophron_dev")
+
 
 class DelimiterField(Schema):
     # TODO move the deserialization part here
     pass
 
     def load(self, obj):
-        breakpoint()
         pass
 
 
@@ -31,9 +30,6 @@ class Creator(Schema):
     name = fields.String(data_key="creators.name")
     affiliation = fields.Method(data_key="creators.affiliation")
     orcid = fields.String(data_key="creators.orcid")
-
-    def load(self, value):
-        return super().load(value)
 
     @validates("orcid")
     def validate_orcid(self, value):
@@ -79,7 +75,7 @@ class Metadata(Schema):
         unknown = EXCLUDE
 
     title = fields.String()
-    description = fields.String()
+    description = fields.String(required=True)
     keywords = fields.Method(deserialize="load_keywords")
     access_right = fields.String()
     upload_type = fields.String()
@@ -92,10 +88,6 @@ class Metadata(Schema):
 
     @post_load(pass_original=True)
     def load_creators(self, result, original, **kwargs):
-        # creator_keys = [k for k in original.keys() if k.startswith("creators.")]
-        # parsed = list([(k, v) for k, v in original.items() if k.startswith("creators.")])
-        # TODO with zip of uneven lengths (Might happen when \n\n), use zip_longest  and fill
-        # TODO rest with "None"
         output = extract_data_from_object("creators.", original)
 
         creators = Creator(many=True).load(output)
@@ -105,6 +97,11 @@ class Metadata(Schema):
     def load_keywords(self, value):
         split = value.splitlines()
         return [v.strip() for v in split]
+
+    @validates("description")
+    def validate_description(self, value):
+        if value == "":
+            raise RecordValidationError("Description must be non-empty.")
 
     @post_load
     def clean(self, value, **kwargs):
@@ -117,22 +114,32 @@ class RecordRow(Schema):
         unknown = EXCLUDE
 
     id = fields.String(required=True)
-    doi = fields.String()
+    doi = fields.String(required=True)
     deposit_id = fields.String()
     files = fields.Method(deserialize="load_files")
 
     @post_load(pass_original=True)
     def load_metadata(self, result, original, **kwargs):
         metadata = Metadata().load(original)
-        result.update(metadata)
+        result.update({"metadata": metadata})
         return result
 
     def load_files(self, value):
-        return value.splitlines()
+        folder_name = "files"
+        result = []
+        for file_name in value.splitlines():
+            file = {"filename": file_name, "filepath": f"{folder_name}/{file_name}"}
+            result.append(file)
+        return result
+
+    @validates("doi")
+    def validate_doi(self, value):
+        if value == "":
+            raise ValidationError("DOI must be non-empty.")
 
     def handle_error(self, error: ValidationError, data, **kwargs):
         dev_logger.error(error)
-        record_id = data.get('doi', data.get('id'))
+        record_id = data.get("doi", data.get("id"))
         raise RecordValidationError(f"'{record_id}' {error.messages}")
 
 

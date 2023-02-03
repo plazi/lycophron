@@ -9,6 +9,7 @@
 import logging
 from marshmallow import ValidationError
 
+
 class LycophronError(Exception):
     pass
 
@@ -30,6 +31,7 @@ class DatabaseError(LycophronError):
 class DatabaseAlreadyExists(DatabaseError):
     pass
 
+
 class DatabaseNotFound(DatabaseError):
     pass
 
@@ -45,13 +47,16 @@ class Logger(object):
 class RecordError(LycophronError):
     error_type = "RECORD"
 
+
 class RecordValidationError(RecordError, ValidationError):
     error_type = "DATA"
     hint = "Check the data structure. E.g. values have the correct format."
 
+
 class InvalidRecordData(RecordError):
     error_type = "DATA"
     hint = "Check the data for, e.g. missing required fields like 'id', 'doi'."
+
 
 class ErrorHandler(object):
     @staticmethod
@@ -64,12 +69,13 @@ class ErrorHandler(object):
 
     def log_error(error):
         if isinstance(error, LycophronError):
-            logger = logging.getLogger('lycophron')
+            logger = logging.getLogger("lycophron")
         else:
-            logger = logging.getLogger('lycophron_dev')
+            logger = logging.getLogger("lycophron_dev")
         logger.error(serialize(error))
 
+
 def serialize(error: Exception) -> str:
-    if hasattr(error, 'error_type'):
+    if hasattr(error, "error_type"):
         return f"{getattr(error, 'error_type')}: {error}"
     return str(error)
