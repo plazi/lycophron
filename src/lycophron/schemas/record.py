@@ -113,8 +113,7 @@ class RecordRow(Schema):
     class Meta:
         unknown = EXCLUDE
 
-    id = fields.String(required=True)
-    doi = fields.String(required=True)
+    doi = fields.String()
     deposit_id = fields.String()
     files = fields.Method(deserialize="load_files")
 
@@ -131,11 +130,6 @@ class RecordRow(Schema):
             file = {"filename": file_name, "filepath": f"{folder_name}/{file_name}"}
             result.append(file)
         return result
-
-    @validates("doi")
-    def validate_doi(self, value):
-        if value == "":
-            raise ValidationError("DOI must be non-empty.")
 
     def handle_error(self, error: ValidationError, data, **kwargs):
         dev_logger.error(error)

@@ -6,15 +6,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron data models."""
 
-from sqlalchemy import Column, Integer, String, JSON, create_engine
+from sqlalchemy import Column, Integer, String, JSON
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from sqlalchemy_utils.models import Timestamp
-
-engine = create_engine("sqlite:///" + "data.db", echo=True)
-
-session = sessionmaker()
-session.configure(bind=engine)
 
 Model = declarative_base()
 
@@ -23,7 +17,7 @@ class Record(Model, Timestamp):
     """Local representation of a record."""
 
     __tablename__ = "record"
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
     doi = Column(String)
     deposit_id = Column(String)
     # Represents the last known metadata's state on Zenodo
@@ -36,3 +30,11 @@ class Record(Model, Timestamp):
 
     def __repr__(self) -> str:
         return f"Record {self.doi}"
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "doi": self.doi,
+            "deposit_id": self.deposit_id,
+            "status": self.status,
+        }

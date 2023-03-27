@@ -69,10 +69,11 @@ def export(outputfile):
 
 
 @lycophron.command()
-def publish():
-    """Publishes all records to Zenodo"""
+@click.option("-n", "--num_records", default=None)
+def publish(num_records):
+    """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
     app = LycophronApp()
-    app.publish_all_records()
+    app.publish_records(num_records)
     from .tasks import app as celery_app
 
     argv = ["worker", "--loglevel=info"]
