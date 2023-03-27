@@ -18,6 +18,7 @@ class Record(Model, Timestamp):
 
     __tablename__ = "record"
     id = Column(Integer, primary_key=True)
+    communities = Column(JSON)
     doi = Column(String)
     deposit_id = Column(String)
     # Represents the last known metadata's state on Zenodo
@@ -37,4 +38,7 @@ class Record(Model, Timestamp):
             "doi": self.doi,
             "deposit_id": self.deposit_id,
             "status": self.status,
+            "communities": self.communities,
+            "original": self.original,
+            "files": self.files
         }

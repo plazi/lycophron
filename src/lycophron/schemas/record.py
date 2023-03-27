@@ -113,6 +113,7 @@ class RecordRow(Schema):
     class Meta:
         unknown = EXCLUDE
 
+    communities = fields.Method(deserialize="load_communities")
     doi = fields.String()
     deposit_id = fields.String()
     files = fields.Method(deserialize="load_files")
@@ -122,6 +123,11 @@ class RecordRow(Schema):
         metadata = Metadata().load(original)
         result.update({"metadata": metadata})
         return result
+
+    def load_communities(self, value):
+        if type(value) == str:
+            return [value]
+        return value
 
     def load_files(self, value):
         folder_name = "files"

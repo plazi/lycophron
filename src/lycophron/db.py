@@ -101,6 +101,7 @@ class LycophronDB(object):
                 response={},
                 original=record["metadata"],
                 files=record["files"],
+                communities=record["communities"]
             )
         )
         try:
