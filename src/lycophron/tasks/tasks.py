@@ -16,21 +16,27 @@ from ..client import create_session
 # TODO tasks are using 'db' directly. Breaks the basic flow Interface -> Business -> Data.
 # TODO tasks do not have any logging implemented yet (e.g. success, errors).
 # TODO tasks are not updating the record's local status (e.g. 'SUCCESS', 'FAILED', etc)
-
+# TODO record serialization to zenodo is done in place, should have its own module (e.g. marshmallow serializers)
+# TODO status codes are not verified. E.g. only upload records whose deposit are uploaded, only upload deposits that have not been processed before etc
 
 class SqlAlchemyTask(Task):
     """An abstract Celery Task that ensures that the connection the the
     database is closed on task completion"""
+
     abstract = True
 
     def after_return(self, status, retval, task_id, args, kwargs, einfo):
         db.session.remove()
 
+
 @app.task(base=SqlAlchemyTask)
-def create_deposit(record, files, metadata, token, url):
+def create_deposit(record, token, url):
     """Create a new deposit."""
     doi = record.get("doi")
     record_id = record["id"]
+    files = record.get("files", [])
+    metadata = record.get("original", {})
+    communities = record.get("communities")
 
     # Create deposit
     session = create_session(token)
@@ -43,7 +49,14 @@ def create_deposit(record, files, metadata, token, url):
 
     if doi:
         metadata["doi"] = doi
-    
+
+    # TODO implement a serializer to Zenodo
+    serialized_communities = []
+    if communities:
+        for c in communities:
+            serialized_communities.append({"identifier": c})
+        metadata["communities"] = serialized_communities
+
     update_url = data["links"]["self"]
     html_url = data["links"]["html"]
 
@@ -101,7 +114,7 @@ def upload_file(doi, file_name, bucket_url, filepath, token):
         )
         if r.status_code != 200:
             failed = True
-    
+
     # TODO uncomment when MemoryError is fixed
     # if failed:
     #     db.update_record_status(doi, "FILE_FAILED")

@@ -90,4 +90,4 @@ class Project:
             records = db.get_all_records()
 
         for record in records:
-            create_deposit.delay(record.to_dict(), record.files, record.original, token, url)
+            create_deposit.delay(record.to_dict(), token, url)
