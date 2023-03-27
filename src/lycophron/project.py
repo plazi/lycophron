@@ -80,11 +80,14 @@ class Project:
 
         return db.database_exists()
 
-    def publish_all_records(self, url, token):
+    def publish_records(self, url, token, num_records=None):
         from .db import db
         from .tasks.tasks import create_deposit
-
-        records = db.get_all_records()
+        
+        if num_records:
+            records = db.get_n_records(num_records)
+        else:
+            records = db.get_all_records()
 
         for record in records:
-            create_deposit.delay(record.files, record.original, token, url)
+            create_deposit.delay(record.to_dict(), record.files, record.original, token, url)

@@ -46,8 +46,8 @@ class LycophronDB(object):
     """Manages a lycophron DB."""
 
     def __init__(self, uri) -> None:
-        self.engine = create_engine(uri, json_serializer=custom_serializer)
-        _session_factory = sessionmaker(bind=self.engine)
+        self.engine = create_engine(uri, json_serializer=custom_serializer, pool_recycle=3600, pool_size=10)
+        _session_factory = sessionmaker(bind=self.engine, autocommit=False, autoflush=False)
         self.session = scoped_session(_session_factory)
 
     def init_db(self) -> None:
@@ -95,7 +95,6 @@ class LycophronDB(object):
             raise DatabaseNotFound("Database not found. Aborting record add.")
         self.session.add(
             Record(
-                id=record["id"],
                 doi=record.get("doi", None),
                 deposit_id=record.get("deposit_id", None),
                 remote_metadata={},
@@ -109,25 +108,26 @@ class LycophronDB(object):
         except Exception as e:
             self.session.rollback()
             dev_logger.error(e)
+            record_rep = record.get('doi') or record.get('title')
             raise DatabaseResourceNotModified(
-                f"Record {record['id']} was rejected by database."
+                f"Record {record_rep} was rejected by database."
             )
         else:
             repr = record.get("doi", record["id"])
             logger.info(f"Record {repr} was added.")
 
-    def update_record_remote_metadata(self, record: dict, metadata: dict) -> None:
+    def update_record_remote_metadata(self, record_id: int, metadata: dict) -> None:
         """Updates a record's metadata in the DB.
 
-        :param record: local representation of the record.
-        :type record: dict
+        :param record_id: local record id.
+        :type record_id: int
         :param metadata: remote's record metadata (e.g. current metadata on Zenodo)
         :type metadata: dict
         """
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record update.")
 
-        rec = self.session.query(Record).get(record["id"])
+        rec = self.session.query(Record).get(record_id)
         rec.remote_metadata = metadata
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
@@ -149,27 +149,27 @@ class LycophronDB(object):
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
 
-    def update_record_doi(self, record, doi):
-        rec = self.session.query(Record).get(record["id"])
+    def update_record_doi(self, record_id, doi):
+        rec = self.session.query(Record).get(record_id)
         rec.doi = doi
         self.session.commit()
         logger.info(f"Record {rec.doi} was updated.")
 
-    def update_record_status(self, doi, status):
+    def update_record_status(self, id, status):
         # TODO doi is not guaranteed
         if not self.database_exists():
             raise DatabaseNotFound("Database not found.  Aborting record update.")
 
         # TODO sql alchemy yields an error
 
-        rec = self.session.query(Record).filter_by(doi=str(doi)).one_or_none()
+        rec = self.session.query(Record).get(id)
 
         if not rec:
-            raise DatabaseResourceNotModified(f"Record {doi} not found in database.")
+            raise DatabaseResourceNotModified(f"Record with {id} not found in database.")
 
         rec.status = status
         self.session.commit()
-        logger.info(f"Record {doi} status was updated.")
+        logger.info(f"Record {rec.doi} status was updated.")
 
     def get_all_records(self):
         if not self.database_exists():
@@ -177,7 +177,13 @@ class LycophronDB(object):
 
         records = self.session.query(Record).all()
         return records
+    
+    def get_n_records(self, number):
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found.  Aborting record fetching.")
 
+        records = self.session.query(Record).limit(number).all()
+        return records
 
 db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
 db = LycophronDB(uri=db_uri)

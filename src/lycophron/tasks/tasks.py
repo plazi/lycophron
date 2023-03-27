@@ -6,7 +6,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks implementation."""
 
-from celery import group
+from celery import group, Task
 import os
 
 from . import app
@@ -18,22 +18,34 @@ from ..client import create_session
 # TODO tasks are not updating the record's local status (e.g. 'SUCCESS', 'FAILED', etc)
 
 
-@app.task
-def process_all_files():
-    pass
+class SqlAlchemyTask(Task):
+    """An abstract Celery Task that ensures that the connection the the
+    database is closed on task completion"""
+    abstract = True
 
+    def after_return(self, status, retval, task_id, args, kwargs, einfo):
+        db.session.remove()
 
-@app.task
-def create_deposit(files, metadata, token, url):
+@app.task(base=SqlAlchemyTask)
+def create_deposit(record, files, metadata, token, url):
     """Create a new deposit."""
+    doi = record.get("doi")
+    record_id = record["id"]
+
     # Create deposit
     session = create_session(token)
     r = session.post(url, json={})
-    # db.update_record_status(doi, "DEPOSIT_CREATED")
+
+    # TODO uncomment when MemoryError is fixed
+    # db.update_record_status(record_id, "DEPOSIT_CREATED")
 
     data = r.json()
-    doi = data["metadata"]["prereserve_doi"]["doi"]
+
+    if doi:
+        metadata["doi"] = doi
+    
     update_url = data["links"]["self"]
+    html_url = data["links"]["html"]
 
     update_res = session.put(update_url, json={"metadata": metadata})
 
@@ -48,11 +60,21 @@ def create_deposit(files, metadata, token, url):
     all_res.link(publish.s(doi, publish_url, token))
     res = all_res()
 
+    # TODO uncomment when MemoryError is fixed
+    # db.update_record_remote_metadata(record_id=record_id, metadata=data["metadata"])
 
-@app.task
+    print(f"Deposit created. Find it in : {html_url}")
+
+
+@app.task(base=SqlAlchemyTask)
 def publish(doi, publish_url, token):
     session = create_session(token)
     r = session.post(publish_url)
+    data = r.json()
+    html_url = data["links"]["record_html"]
+    print(f"Record published. Find it in : {html_url}")
+
+    # TODO uncomment when MemoryError is fixed
     # if r.status_code == 200:
     #     db.update_record_status(doi, "DEPOSIT_CREATED")
 
@@ -79,6 +101,8 @@ def upload_file(doi, file_name, bucket_url, filepath, token):
         )
         if r.status_code != 200:
             failed = True
+    
+    # TODO uncomment when MemoryError is fixed
     # if failed:
     #     db.update_record_status(doi, "FILE_FAILED")
     # else:

@@ -72,9 +72,9 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def load_file(self, filename):
         self.project.load_file(filename)
 
-    def publish_all_records(self):
-        self.project.publish_all_records(
-            self.config["ZENODO_URL"], self.config["TOKEN"]
+    def publish_records(self, num_records=None):
+        self.project.publish_records(
+            self.config["ZENODO_URL"], self.config["TOKEN"], num_records
         )
 
 
