@@ -6,11 +6,22 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron data models."""
 
-from sqlalchemy import Column, Integer, String, JSON
+import enum
+from sqlalchemy import Column, Integer, String, JSON, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
+
+
+class RecordStatus(str, enum.Enum):
+    NEW = "NEW"
+    DEPOSIT_FAIL = "DEPOSIT_FAIL"
+    DEPOSIT_SUCCESS = "DEPOSIT_SUCCESS"
+    PUBLISH_FAIL = "RECORD_FAIL"
+    PUBLISH_SUCCESS = "PUBLISH_SUCCESS"
+    FILE_FAIL = "FILE_FAIL"
+    FILE_SUCCESS = "FILE_SUCCESS"
 
 
 class Record(Model, Timestamp):
@@ -27,7 +38,8 @@ class Record(Model, Timestamp):
     # Already validated by marshmallow
     original = Column(JSON)
     files = Column(JSON)
-    status = Column(String)
+    status = Column(Enum(RecordStatus), default=RecordStatus.NEW)
+    links = Column(JSON, default={})
 
     def __repr__(self) -> str:
         return f"Record {self.doi}"
@@ -40,5 +52,6 @@ class Record(Model, Timestamp):
             "status": self.status,
             "communities": self.communities,
             "original": self.original,
-            "files": self.files
+            "files": self.files,
+            "links": self.links
         }

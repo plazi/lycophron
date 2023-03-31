@@ -17,7 +17,7 @@ from sqlalchemy.orm import sessionmaker
 
 from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
 from .app import app
-from .models import Record, Model
+from .models import Record, RecordStatus, Model
 
 logger = logging.getLogger("lycophron")
 dev_logger = logging.getLogger("lycophron_dev")
@@ -31,23 +31,16 @@ def custom_serializer(o):
         return json.dumps(o, default=str)
 
 
-class CustomJSONEncoder(json.JSONEncoder):
-    """ """
-
-    def default(self, o):
-        if isinstance(o, datetime.datetime):
-            return str(o)
-        else:
-            # raises TypeError: o not JSON serializable
-            return json.JSONEncoder.default(self, o)
-
-
 class LycophronDB(object):
     """Manages a lycophron DB."""
 
     def __init__(self, uri) -> None:
-        self.engine = create_engine(uri, json_serializer=custom_serializer, pool_recycle=3600, pool_size=10)
-        _session_factory = sessionmaker(bind=self.engine, autocommit=False, autoflush=False)
+        self.engine = create_engine(
+            uri, json_serializer=custom_serializer, pool_recycle=3600, pool_size=10
+        )
+        _session_factory = sessionmaker(
+            bind=self.engine, autocommit=False, autoflush=False
+        )
         self.session = scoped_session(_session_factory)
 
     def init_db(self) -> None:
@@ -101,7 +94,7 @@ class LycophronDB(object):
                 response={},
                 original=record["metadata"],
                 files=record["files"],
-                communities=record["communities"]
+                communities=record["communities"],
             )
         )
         try:
@@ -109,7 +102,7 @@ class LycophronDB(object):
         except Exception as e:
             self.session.rollback()
             dev_logger.error(e)
-            record_rep = record.get('doi') or record.get('title')
+            record_rep = record.get("doi") or record.get("title")
             raise DatabaseResourceNotModified(
                 f"Record {record_rep} was rejected by database."
             )
@@ -117,74 +110,24 @@ class LycophronDB(object):
             repr = record.get("doi", record["id"])
             logger.info(f"Record {repr} was added.")
 
-    def update_record_remote_metadata(self, record_id: int, metadata: dict) -> None:
-        """Updates a record's metadata in the DB.
-
-        :param record_id: local record id.
-        :type record_id: int
-        :param metadata: remote's record metadata (e.g. current metadata on Zenodo)
-        :type metadata: dict
-        """
-        if not self.database_exists():
-            raise DatabaseNotFound("Database not found. Aborting record update.")
-
-        rec = self.session.query(Record).get(record_id)
-        rec.remote_metadata = metadata
-        self.session.commit()
-        logger.info(f"Record {rec.doi} was updated.")
-
-    def update_record_response(self, doi: str, response: dict) -> None:
-        """Updates a record's last remote response status.
-
-        :param doi: record's doi
-        :type doi: str
-        :param response: response retrieved from the remote (e.g. Zenodo)
-        :type response: dict
-        """
-        if not self.database_exists():
-            raise DatabaseNotFound("Database not found.  Aborting record update.")
-
-        rec = self.session.query(Record).filter_by(doi=doi)
-        rec.response = response
-        rec.deposit_id = response["id"]
-        self.session.commit()
-        logger.info(f"Record {rec.doi} was updated.")
-
-    def update_record_doi(self, record_id, doi):
-        rec = self.session.query(Record).get(record_id)
-        rec.doi = doi
-        self.session.commit()
-        logger.info(f"Record {rec.doi} was updated.")
-
-    def update_record_status(self, id, status):
-        # TODO doi is not guaranteed
-        if not self.database_exists():
-            raise DatabaseNotFound("Database not found.  Aborting record update.")
-
-        # TODO sql alchemy yields an error
-
+    def get_record(self, id):
         rec = self.session.query(Record).get(id)
+        return rec
 
-        if not rec:
-            raise DatabaseResourceNotModified(f"Record with {id} not found in database.")
-
-        rec.status = status
+    def update_record(self, record):
         self.session.commit()
-        logger.info(f"Record {rec.doi} status was updated.")
 
-    def get_all_records(self):
+    def get_unpublished_deposits(self, number):
         if not self.database_exists():
-            raise DatabaseNotFound("Database not found.  Aborting record fetching.")
-
-        records = self.session.query(Record).all()
+            raise DatabaseNotFound("Database not found. Aborting record fetching.")
+        query = self.session.query(Record).filter(
+            Record.status != RecordStatus.PUBLISH_SUCCESS
+        )
+        if number:
+            query = query.limit(number)
+        records = query.all()
         return records
-    
-    def get_n_records(self, number):
-        if not self.database_exists():
-            raise DatabaseNotFound("Database not found.  Aborting record fetching.")
 
-        records = self.session.query(Record).limit(number).all()
-        return records
 
 db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
 db = LycophronDB(uri=db_uri)
