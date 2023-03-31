@@ -7,7 +7,9 @@
 """Lycophron project classes (business logic layer)."""
 
 import csv
+import json
 import os
+import time
 
 from .errors import (
     DatabaseAlreadyExists,
@@ -81,13 +83,8 @@ class Project:
         return db.database_exists()
 
     def publish_records(self, url, token, num_records=None):
-        from .db import db
-        from .tasks.tasks import create_deposit
-        
-        if num_records:
-            records = db.get_n_records(num_records)
-        else:
-            records = db.get_all_records()
+        from .tasks.tasks import publish_records
 
-        for record in records:
-            create_deposit.delay(record.to_dict(), token, url)
+        publish_records.apply_async(
+            args=[url, token, num_records],
+        )
