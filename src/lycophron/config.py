@@ -29,7 +29,7 @@ class Config(dict):
         self.root_path = root_path
         self.defaultsLoader = DefaultsLoader()
         self.cfgLoader = CFGLoader(root_path=root_path)
-        self.loaders = [self.cfgLoader, self.defaultsLoader]
+        self.loaders = [self.defaultsLoader, self.cfgLoader]
 
     def __setitem__(self, __key, __value) -> None:
         if not str(__key).isupper():
@@ -94,7 +94,7 @@ class CFGLoader(ConfigLoader):
         return os.path.exists(self.cfg_path)
 
     def deserialize(self, key, val):
-        return f"{key.upper()} = '{val}'"
+        return f"{key.upper()} = '{val}'\n"
 
     def dump(self, dump_data) -> None:
         if type(dump_data) is not dict:
