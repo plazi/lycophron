@@ -16,7 +16,6 @@ from . import app
 from ..db import LycophronDB
 from ..client import create_session
 from ..models import RecordStatus
-
 # TODO tasks are using 'db' directly. Breaks the basic flow Interface -> Business -> Data.
 # TODO tasks do not have any logging implemented yet (e.g. success, errors).
 # TODO record serialization to zenodo is done in place, should have its own module (e.g. marshmallow serializers)
