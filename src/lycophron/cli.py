@@ -9,7 +9,6 @@
 import click
 
 from .app import LycophronApp
-from .db import db
 
 
 @click.group()

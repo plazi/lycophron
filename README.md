@@ -1,6 +1,6 @@
 # Lycophron
 
-TODO
+CLI tool for managing Zenodo uploads.
 
 ## Getting started
 
@@ -10,11 +10,11 @@ TODO
 
 ## Requirements
 
-- `python` version `3.7.2`
+- Python v3.9+
 
 ## Installation
 
-### Linux
+### Linux/macOS
 
 > It is recommended to use a virtual environment to install and run the application.
 >
@@ -25,17 +25,14 @@ TODO
 > source lycophron/bin/activate
 > ```
 
-To install the application, use [pip-tools](https://github.com/jazzband/pip-tools):
+To install the CLI tool just run:
 
 ```shell
-# Install pip-tools for dependency management
-python -m pip install pip-tools
+# For using the tool
+python -m pip install -r requirements.txt
 
-# Install Python requirements
-pip-sync requirements.dev.txt requirements.txt
-
-# Install lycophron 
-python -m pip install .
+# For local development
+python -m pip install requirements-dev.txt
 ```
 
 ## Examples
@@ -56,28 +53,6 @@ TODO
 
 To manage Python dependencies, lycophron uses [`pip-tools`](https://github.com/jazzband/pip-tools).
 
-Make sure that it is installed:
-
-```shell
-# Install pip-tools
-python -m pip install pip-tools
-```
-
-and validate the installation:
-
-```console
-$ python -m piptools --help
-
-Usage: python -m piptools [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --help  Show this message and exit.
-
-Commands:
-  compile  Compiles requirements.txt from requirements.in,...
-  sync     Synchronize virtual environment with requirements.txt.
-```
-
 #### Generate dependency files
 
 > You should not need to do this. More often, you will want to just bump all dependencies to their latest versions. See [upgrading dependencies](#upgrade-a-dependency)
@@ -85,28 +60,28 @@ Commands:
 Two major files are used by `pip-tools`:
 
 - `requirements.in`, used for production
-- `requirements.dev.in`, used for development
+- `requirements-dev.in`, used for development
 
 The files are generated from scratch like so:
 
 ```shell
 # Generate requirements.txt
-pip-compile
+pip-compile requirements.in
 
-# Generate requirements.dev.txt
-pip-compile requirements.dev.in -o requirements.dev.txt  
+# Generate requirements-dev.txt
+pip-compile requirements-dev.in
 ```
 
 #### Add a new dependency
 
-To add a new dependency, add it in either `requirements.in` or `requirements.dev.in`. Then, update `*.txt` files with pinned versions:
+To add a new dependency, add it in the `dependencies` section of the `pyproject.toml` file. Add testing/development dependencies under `[project.optional-dependencies]` section's `tests` extra.
 
 ```shell
 # Update the requirements.txt file
-pip-compile --upgrade-package <new-package>
+pip-compile requirements.in --upgrade-package <new-package>
 
 # Update the requirements.dev.txt file
-pip-compile requirements.dev.in -o requirements.dev.txt --upgrade-package <new-package>
+pip-compile requirements-dev.in --upgrade-package <new-package>
 ```
 
 #### Upgrade all dependencies
@@ -114,13 +89,12 @@ pip-compile requirements.dev.in -o requirements.dev.txt --upgrade-package <new-p
 To upgrade all dependencies in development, run the following command in your terminal:
 
 ```shell
-pip-compile --upgrade
-pip-compile requirements.dev.in -o requirements.dev.txt --upgrade
+pip-compile requirements-dev.in --upgrade
 ```
 
 and for production:
 
 ```shell
 pip-compile --upgrade
-pip-compile requirements.in -o requirements.txt --upgrade
+pip-compile requirements.in --upgrade
 ```

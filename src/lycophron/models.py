@@ -53,5 +53,5 @@ class Record(Model, Timestamp):
             "communities": self.communities,
             "original": self.original,
             "files": self.files,
-            "links": self.links
+            "links": self.links,
         }
