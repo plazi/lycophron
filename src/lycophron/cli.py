@@ -7,6 +7,7 @@
 """Lycophron cli tools."""
 
 import click
+import csv
 
 from .app import LycophronApp
 
@@ -90,6 +91,230 @@ def update():
 def configure():
     """Configures the application."""
     pass
+
+
+@lycophron.command()
+@click.option(
+    "--custom",
+    type=str,
+    help="Custom field namespaces separated by commas (e.g., dwc,ac,obo)",
+)
+@click.option("--access", is_flag=True, help="Include all fields")
+@click.option(
+    "--filename",
+    type=click.File(mode="w", lazy=True),
+    default="data.csv",
+    help="Output CSV filename",
+)
+@click.option("--all", is_flag=True, help="Include all fields")
+def new_template(
+    custom,
+    access,
+    filename,
+    all,
+):
+    """Creates a new CSV template."""
+    lycophron_fields = ["id", "filenames"]
+
+    # Base RDM fields
+    rdm_fields = [
+        "resource_type.id",
+        "creators.type",
+        "creators.given_name",
+        "creators.family_name",
+        "creators.name",
+        "creators.orcid",
+        "creators.gnd",
+        "creators.isni",
+        "creators.ror",
+        "creators.role.id",
+        "creators.affiliations.id",
+        "creators.affiliations.name",
+        "title",
+        "publication_date",
+        # "additional_titles.title",
+        # "additional_titles.type.id",
+        # "additional_titles.lang.id",
+        "description",
+        "abstract.description",  # This is an additional_descriptions
+        # "abstract.lang.id",
+        "method.description",  # This is an additional_descriptions
+        # "method.lang.id",
+        "notes.description",  # This is an additional_descriptions
+        # "notes.lang.id",
+        # "other.description",  # This is an additional_descriptions
+        # "other.lang.id",
+        # "series-information.description",  # This is an additional_descriptions
+        # "series-information.lang.id",
+        # "table-of-contents.description",  # This is an additional_descriptions
+        # "table-of-contents.lang.id",
+        # "technical-info.description",  # This is an additional_descriptions
+        # "technical-info.lang.id",
+        "rights.id",
+        "rights.title",
+        # "rights.description",
+        # "rights.link",
+        "contributors.type",
+        "contributors.given_name",
+        "contributors.family_name",
+        "contributors.name",
+        "contributors.orcid",
+        "contributors.gnd",
+        "contributors.isni",
+        "contributors.ror",
+        "contributors.role.id",
+        "contributors.affiliations.id",
+        "contributors.affiliations.name",
+        # "subjects.id",
+        "subjects.subject",
+        "languages.id",
+        # "dates.date",
+        # "dates.type.id",
+        # "dates.description",
+        "version",
+        "publisher",
+        "identifiers.identifier",
+        # "identifiers.scheme",  # Auto guessed
+        "related_identifiers.identifier",
+        # "related_identifiers.scheme",  # Auto guessed
+        "related_identifiers.relation_type.id",
+        "related_identifiers.resource_type.id",
+        # "funding.funder.id",
+        # "funding.funder.name",
+        # "funding.award.id",
+        # "funding.award.title",
+        # "funding.award.number",
+        # "funding.award.identifiers.scheme",
+        # "funding.award.identifiers.identifier",
+        "references.reference",
+        # "references.identifier",
+        # "references.scheme",
+        "default_community",
+        "communities",
+        "doi",
+        "locations.lat",
+        "locations.lon",
+        "locations.place",
+        "locations.description",
+    ]
+
+    access_fields = [
+        "access.files",
+        "access.embargo.active",
+        "access.embargo.until",
+        "access.embargo.reason",
+    ]
+
+    # Field prefixes
+    field_prefixes = {
+        "journal": "journal",
+        "meeting": "meeting",
+        "imprint": "imprint",
+        "thesis": "university",
+        "dwc": "dwc",
+        "gbif-dwc": "gbif-dwc",
+        "ac": "ac",
+        "dc": "dc",
+        "openbiodiv": "openbiodiv",
+        "obo": "obo",
+    }
+
+    # Field definitions
+    field_definitions = {
+        "journal": ["title", "issue", "volume", "pages", "issn"],
+        "meeting": [
+            "acronym",
+            "dates",
+            "place",
+            "session_part",
+            "session",
+            "title",
+            "url",
+        ],
+        "imprint": ["title", "isbn", "pages", "place"],
+        "thesis": ["thesis"],
+        "dwc": [
+            "basisOfRecord",
+            "catalogNumber",
+            "class",
+            "collectionCode",
+            "country",
+            "county",
+            "dateIdentified",
+            "decimalLatitude",
+            "decimalLongitude",
+            "eventDate",
+            "family",
+            "genus",
+            "identifiedBy",
+            "individualCount",
+            "institutionCode",
+            "kingdom",
+            "lifeStage",
+            "locality",
+            "materialSampleID",
+            "namePublishedInID",
+            "namePublishedInYear",
+            "order",
+            "otherCatalogNumbers",
+            "phylum",
+            "preparations",
+            "recordedBy",
+            "scientificName",
+            "scientificNameAuthorship",
+            "scientificNameID",
+            "sex",
+            "specificEpithet",
+            "stateProvince",
+            "taxonID",
+            "taxonRank",
+            "taxonomicStatus",
+            "typeStatus",
+            "verbatimElevation",
+            "verbatimEventDate",
+        ],
+        "gbif-dwc": ["identifiedByID", "recordedByID"],
+        "ac": [
+            "associatedSpecimenReference",
+            "captureDevice",
+            "physicalSetting",
+            "resourceCreationTechnique",
+            "subjectOrientation",
+            "subjectPart",
+        ],
+        "dc": ["creator", "rightsHolder"],
+        "openbiodiv": ["TaxonomicConceptLabel"],
+        "obo": ["RO_0002453"],
+    }
+
+    def generate_fields(prefix, fields):
+        """Generates fields with prefixes."""
+        return [f"{prefix}.{field}" for field in fields]
+
+    # Consolidate all fields
+    all_fields = {
+        key: generate_fields(field_prefixes[key], fields)
+        for key, fields in field_definitions.items()
+    }
+
+    # Initialize the list of fields with base lycophron and RDM fields
+    fields = lycophron_fields.copy() + rdm_fields.copy()
+    # Add conditional fields if enabled to headers
+    if all:
+        fields.extend(access_fields.copy())
+        for namespace in field_definitions.keys():
+            fields.extend(all_fields.get(namespace, []))
+    else:
+        if access:
+            fields.extend(access_fields.copy())
+        if custom:
+            namespaces = custom.split(",")
+            for namespace in namespaces:
+                fields.extend(all_fields.get(namespace, []))
+
+    # Write the fields to the CSV file
+    csv_writer = csv.writer(filename)
+    csv_writer.writerow(fields)
 
 
 lycophron.add_command(init)
