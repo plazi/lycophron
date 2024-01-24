@@ -6,15 +6,16 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron project classes (business logic layer)."""
 
-import csv
-import json
 import os
-import time
+from urllib.parse import urlparse
 
+from .client import create_session
+from .config import required_configs
 from .errors import (
     DatabaseAlreadyExists,
     ErrorHandler,
     InvalidRecordData,
+    InvalidDirectoryError,
 )
 from .loaders import LoaderFactory
 from .schemas.record import RecordRow
@@ -72,10 +73,32 @@ class Project:
 
         db.recreate_db()
 
-    def validate_project(self):
+    def _is_valid_url(self, config):
+        parsed_url = urlparse(config["ZENODO_URL"])
+        if not all([parsed_url.scheme, parsed_url.netloc]):
+            raise ValueError(f"Invalid URL provided: {config['ZENODO_URL']}.")
+
+    def _is_valid_token(self, config):
+        session = create_session(config["TOKEN"])
+        url = config["ZENODO_URL"] + "/api/me"
+        response = session.get(url)
+        if response.status_code != 200:
+            raise ValueError(
+                f"Invalid token or URL provided. Token: {config['TOKEN']}, URL: {config['ZENODO_URL']}"
+            )
+
+    def validate_project(self, config):
         # Configs exist
-        # Configs are valid
-        raise NotImplementedError("Project validation not implemented yet")
+        for required_value in required_configs:
+            if not config[required_value]:
+                raise ValueError(f"Missing required config: {required_value}")
+        # Configs are valid (sqlite uri is already validated, as the db needs to be initialized in order to reach this)
+        self._is_valid_url(config)
+        self._is_valid_token(config)
+        # Folder for files does exist
+        folder_name = "files"
+        if not os.path.exists(folder_name) or not os.path.isdir(folder_name):
+            raise InvalidDirectoryError(f"Missing required folder: {folder_name}")
 
     def is_project_initialized(self):
         from .db import db

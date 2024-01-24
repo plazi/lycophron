@@ -10,7 +10,6 @@ import os
 from .config import Config
 from .errors import ErrorHandler
 from .project import Project
-from .client import create_session
 
 
 class SingletonMeta(type):
@@ -64,7 +63,7 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def validate_project(self):
         if not self.project.is_project_initialized():
             raise ValueError("Project is not initialised!")
-        self.project.validate_project()
+        self.project.validate_project(self.config)
 
     def is_project_initialized(self):
         return self.project and self.project.is_project_initialized()
@@ -73,9 +72,8 @@ class LycophronApp(object, metaclass=SingletonMeta):
         self.project.load_file(filename)
 
     def publish_records(self, num_records=None):
-        self.project.publish_records(
-            self.config["ZENODO_URL"], self.config["TOKEN"], num_records
-        )
+        publish_url = self.config["ZENODO_URL"] + "/api/deposit/depositions"
+        self.project.publish_records(publish_url, self.config["TOKEN"], num_records)
 
 
 app = LycophronApp()

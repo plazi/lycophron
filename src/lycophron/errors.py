@@ -48,6 +48,13 @@ class RecordError(LycophronError):
     error_type = "RECORD"
 
 
+class InvalidDirectoryError(LycophronError):
+    error_type = "DIRECTORY"
+    hint = (
+        "Create the appropriate directory structure. See documentation on how to do it."
+    )
+
+
 class RecordValidationError(RecordError, ValidationError):
     error_type = "DATA"
     hint = "Check the data structure. E.g. values have the correct format."
