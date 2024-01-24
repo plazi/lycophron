@@ -6,25 +6,36 @@ The tool supports the upload through CSV files that describe each record to be u
 
 ## "The" Quickstart Guide
 
-1. Install
+1. Installation
+
+    Install from PyPi:
 
     ```bash
-    # (Optionally, create a virtual environment first)
-    mkvirtualenv lycophron # with pyenv 
-    python -m pip install -r requirements.txt
+    pip install --user lycophron 
     ```
 
-2. Create a folder for the project
+    Alternatively, use pipx:
 
     ```bash
-    mkdir $HOME/monkeys
-    cd $HOME/monkeys
+    pipx install lycophron 
     ```
 
-3. Initalize a local project
+    Or install directly from Github:
 
     ```bash
-    python -m lycophron init --force
+    pip install --user git+https://github.com/plazi/lycophron.git@v1.0.0 
+    ```
+
+2. Initalize a local project named "monkeys"
+
+    ```bash
+    lycophron init monkeys --force
+    ```
+
+    List the project contents:
+
+    ```bash
+    cd monkeys/  
     
     tree
     #|____lycophron.cfg
@@ -36,24 +47,38 @@ The tool supports the upload through CSV files that describe each record to be u
 
     > You will be prompted to input the authentication token. You can leave it empty as this can be done afterward by directly editing the configuration file.
 
-4. Configure the project (add or edit `TOKEN` and `ZENODO_URL`)
+3. Configure the project (add or edit `TOKEN` and `ZENODO_URL`)
 
     ```bash
     cat lycophron.cfg
     # TOKEN = 'CHANGE_ME'
-    # ZENODO_URL = 'https://zenodo.org/api/deposit/depositions'
+    # ZENODO_URL = 'https://zenodo.org/api'
     ```
 
-5. Create a CSV file and load it
+4. Create a CSV file from a template
+
+    Generate a template with all the fields:
 
     ```bash
-    python -m lycophron load --inputfile data.csv
+    lycophron gen-template --filename output.csv --all
+    ```
+
+    Add custom fields (e.g. `dwc` and `oc`) to the template:
+
+    ```bash
+    lycophron gen-template --filename output.csv --custom "dwc,ac"
+    ```
+
+5. Fill in the metadata and load the file
+
+    ```bash
+    lycophron load --inputfile output.csv
     ```
 
 6. Publish to Zenodo
 
     ```bash
-    python -m lycophron publish
+    lycophron publish
     ```
 
 ## Getting started
@@ -63,7 +88,6 @@ The tool supports the upload through CSV files that describe each record to be u
 - [Configuration](#configuration)
 - [Metadata](#supported-metadata)
 - [How to create a CSV](#how-to-create-a-csv)
-- [Examples](#examples)
 - [Development](#development)
 - [Known issues](#known-issues)
 
@@ -104,6 +128,20 @@ This command initializes the project, creates necessary configuration files, and
 `init --force` : initialize the app and wipe the local database
 
 >:warning: Adjust configurations in the generated files to meet specific upload requirements.
+
+**validate**
+
+This command validates the current project. I.e. it checks whether the application is properly configured, the directory structure is correct and the metadata is valid and ready to be loaded locally.
+
+`validate --filename` : validate the project and the given file.
+
+**gen-template**
+
+This command generates a CSV file from the default template, containing all the required headers. The template can either be generated with all the fields or by explicitely adding custom fields on top of the required ones.
+
+`gen-template --filename`       : creates the output file in the given path and name.
+`gen-template --all`            : creates a template using all fields (required and custom fields).
+`gen-template --custom "x,y,z"` : creates a template using the required fields plus the given custom fields.
 
 **load**
 
@@ -146,10 +184,9 @@ This command specifically targets records that are currently unpublished. Import
 | doi | 0-1 | string | - |
 | files | 0-N | list of strings | name of the files to upload for the record |
 
-
 ## How to create a .csv
 
-- Get the template from [here](https://docs.google.com/spreadsheets/d/1JAxI4uBLS9lhhtP9iyhOQPOHsSMqywjCYfIcqUIMCKU/edit#gid=0) and fill in the metadata.
+- Generate the template by running `lycophron gen-template` and fill in the metadata.
 - File names must match the files under the directory `/files/`
 
 > :warning:
@@ -165,17 +202,11 @@ Example:
 
 ## Known issues
 
-- Missing commands
-  - `validate`
-  - `gen-template`
-- Rate limiting applied manually, could be using celery
 - DOIs are generated on demand, existing or external DOIs are not accepted. [issue](https://github.com/plazi/lycophron/issues/19)
 - Metadata is compliant with legacy Zenodo, not RDM
 - Output is not clear for the user. E.g. user does not know what to run next, how to fix issues with the data, etc.
 - `init` does not create the needed file structure, still requires manual intervention (e.g. creation of `./files/`)
 - Linking between rows is not supported. E.g. row 1 references a record from row 2
-- Does not use `invenio-client` yet
-- To parse the original "excel" files, a small script was implemented to parse the file (under `./lycophron/src/transform_excel.py`)
 
 ## Development
 
@@ -185,7 +216,7 @@ To manage Python dependencies, lycophron uses [`pip-tools`](https://github.com/j
 
 #### Generate dependency files
 
-> You should not need to do this. More often, you will want to just bump all dependencies to their latest versions. See [upgrading dependencies](#upgrade-a-dependency)
+> You should not need to do this. More often, you will want to just bump all dependencies to their latest versions. See [upgrading dependencies](#upgrade-all-dependencies)
 
 Two major files are used by `pip-tools`:
 
