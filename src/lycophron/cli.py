@@ -198,28 +198,15 @@ def lycophron():
 
 
 @lycophron.command()
+@click.argument("pname", required=False)
 @click.option("--token", prompt="Zenodo token", default="CHANGEME")
-@click.option("--force", default=False, is_flag=True)
-def init(token, force):
+def init(pname=None, token=None):
     """Command to intialize the project"""
-    app = LycophronApp()
-
-    if app.is_config_persisted("token") and not force:
-        click.echo(
-            "'token' is already defined in configuration file. Use flag --force to override"
-        )
-    else:
-        app.update_app_config({"token": token}, persist=True)
-
-    if not app.is_project_initialized():
-        app.init_project()
-    else:
-        if force:
-            confirm = click.confirm(
-                "You are about to destroy the database and wipe the .files/ directory. Do you want to proceed?"
-            )
-            if confirm:
-                app.recreate_project()
+    _name = pname or ""
+    app = LycophronApp(name=_name)
+    app.init()
+    if token:
+        app.config.update_config({"token": token}, persist=True)
 
 
 @lycophron.command()

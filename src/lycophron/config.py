@@ -7,6 +7,7 @@
 """Lycophron config classes."""
 
 import logging
+import logging
 import os
 import types
 from abc import ABC, abstractmethod
@@ -18,19 +19,16 @@ logger = logging.getLogger("lycophron")
 
 class Defaults:
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
-    ZENODO_URL = "https://sandbox.zenodo.org"
+    ZENODO_URL = "https://sandbox.zenodo.org/api"
 
 
 required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
 
 
 class Config(dict):
-    def __init__(self, root_path, defaults: dict = None) -> None:
-        super().__init__(defaults or {})
+    def __init__(self, root_path, defaults: None) -> None:
+        self.defaults = defaults
         self.root_path = root_path
-        self.defaultsLoader = DefaultsLoader()
-        self.cfgLoader = CFGLoader(root_path=root_path)
-        self.loaders = [self.defaultsLoader, self.cfgLoader]
 
     def __setitem__(self, __key, __value) -> None:
         if not str(__key).isupper():
@@ -38,8 +36,26 @@ class Config(dict):
             return
         return super().__setitem__(__key, __value)
 
+    @property
+    def is_initialized(self):
+        return self.cfgLoader.exists()
+
+    @property
+    def defaultsLoader(self):
+        return DefaultsLoader(self.defaults)
+
+    @property
+    def cfgLoader(self):
+        return CFGLoader(root_path=self.root_path)
+
+    def recreate(self):
+        """Recreate the config file."""
+        if self.cfgLoader.exists():
+            os.remove(self.cfgLoader.cfg_path)
+        self.create()
+
     def load(self):
-        for loader in self.loaders:
+        for loader in [self.defaultsLoader, self.cfgLoader]:
             configs = loader.load()
             self.update(**configs)
 
@@ -81,15 +97,21 @@ class ConfigLoader(ABC):
 
 
 class DefaultsLoader(ConfigLoader):
+    def __init__(self, defaults=None) -> None:
+        _defaults = defaults or {}
+        self.defaults = _defaults
+
     def load(self) -> dict:
-        return self.load_from_object(Defaults)
+        dfs = self.load_from_object(Defaults)
+        if self.defaults:
+            dfs.update(self.defaults)
+        return dfs
 
 
 class CFGLoader(ConfigLoader):
     def __init__(self, root_path) -> None:
         self.file_name = "lycophron.cfg"
-        self.root_path = root_path
-        self.cfg_path = os.path.join(self.root_path, self.file_name)
+        self.cfg_path = os.path.join(root_path, self.file_name)
 
     def exists(self) -> bool:
         return os.path.exists(self.cfg_path)

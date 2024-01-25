@@ -6,16 +6,14 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks implementation."""
 
-from celery import group, Task
-from celery.contrib import rdb
 import json
-import time
 import os
+import time
 
-from . import app
-from ..db import LycophronDB
 from ..client import create_session
+from ..db import LycophronDB
 from ..models import RecordStatus
+from . import app
 
 # TODO tasks are using 'db' directly. Breaks the basic flow Interface -> Business -> Data.
 # TODO tasks do not have any logging implemented yet (e.g. success, errors).

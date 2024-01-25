@@ -6,18 +6,16 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Database manager for lycophron. Provides basic functionalities to create a database."""
 
+import datetime
 import json
 import logging
-import datetime
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy_utils.functions import create_database, database_exists, drop_database
-from sqlalchemy.orm import scoped_session
-from sqlalchemy.orm import sessionmaker
 
 from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
-from .app import app
-from .models import Record, RecordStatus, Model
+from .models import Model, Record, RecordStatus
 
 logger = logging.getLogger("lycophron")
 dev_logger = logging.getLogger("lycophron_dev")
@@ -127,7 +125,3 @@ class LycophronDB(object):
             query = query.limit(number)
         records = query.all()
         return records
-
-
-db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
-db = LycophronDB(uri=db_uri)

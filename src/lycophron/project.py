@@ -20,12 +20,30 @@ from .errors import (
 )
 from .loaders import LoaderFactory
 from .schemas.record import RecordRow
+from .db import LycophronDB
 
 
 class Project:
-    def __init__(self, project_folder=os.getcwd()):
-        self.project_folder = project_folder
+    def __init__(self, db_uri):
         self.errors = []
+        self._db_uri = db_uri
+
+    @property
+    def db(self):
+        """Get the database."""
+        return LycophronDB(uri=self.db_uri)
+
+    @property
+    def db_uri(self):
+        return self._db_uri
+
+    @db_uri.setter
+    def db_uri(self, uri):
+        self._db_uri = uri
+
+    @property
+    def is_initialized(self):
+        return self.db.database_exists()
 
     def load_file(self, filename):
         data = self.process_file(filename)
@@ -35,7 +53,7 @@ class Project:
             ErrorHandler.handle_error(self.errors)
 
     def process_file(self, filename):
-        if not self.is_project_initialized():
+        if not self.is_initialized:
             raise Exception("Project is not initialised.")
         factory = LoaderFactory()
         loader = factory.create_loader(filename)
@@ -51,30 +69,16 @@ class Project:
         return records
 
     def add_record(self, record):
-        # TODO fix too many "from .db import db"
-        # TODO record data integrity is missing validation
-        from .db import db
-
+        # TODO record data integrity is missin validation
         try:
-            db.add_record(record)
+            self.db.add_record(record)
         except Exception as e:
             self.errors.append(e)
 
-    def _create_directory(self):
-        """Create the project directory."""
-        os.makedirs(os.path.join(self.project_folder, "files"), exist_ok=True)
-
-    def _remove_directory(self):
-        """Remove the project directory."""
-        shutil.rmtree(os.path.join(self.project_folder, "files"), ignore_errors=True)
-
     def initialize(self):
         """Initialize the project"""
-        from .db import db
-
         try:
-            db.init_db()
-            self._create_directory()
+            self.db.init_db()
         except DatabaseAlreadyExists as e:
             ErrorHandler.handle_error(e)
 
@@ -111,11 +115,6 @@ class Project:
         folder_name = "files"
         if not os.path.exists(folder_name) or not os.path.isdir(folder_name):
             raise InvalidDirectoryError(f"Missing required folder: {folder_name}")
-
-    def is_project_initialized(self):
-        from .db import db
-
-        return db.database_exists()
 
     def publish_records(self, url, token, num_records=None):
         from .tasks.tasks import publish_records
