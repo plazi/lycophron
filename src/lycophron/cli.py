@@ -216,7 +216,7 @@ def init(token, force):
     else:
         if force:
             confirm = click.confirm(
-                "You are about to destroy the database. Do you want to proceed?"
+                "You are about to destroy the database and wipe the .files/ directory. Do you want to proceed?"
             )
             if confirm:
                 app.recreate_project()

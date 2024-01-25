@@ -7,7 +7,8 @@
 """Lycophron project classes (business logic layer)."""
 
 import os
-from urllib.parse import urlparse
+from urllib.parse import shutil
+import urlparse
 
 from .client import create_session
 from .config import required_configs
@@ -59,18 +60,29 @@ class Project:
         except Exception as e:
             self.errors.append(e)
 
+    def _create_directory(self):
+        """Create the project directory."""
+        os.makedirs(os.path.join(self.project_folder, "files"), exist_ok=True)
+
+    def _remove_directory(self):
+        """Remove the project directory."""
+        shutil.rmtree(os.path.join(self.project_folder, "files"), ignore_errors=True)
+
     def initialize(self):
         """Initialize the project"""
         from .db import db
 
         try:
             db.init_db()
+            self._create_directory()
         except DatabaseAlreadyExists as e:
             ErrorHandler.handle_error(e)
 
     def recreate_project(self):
         from .db import db
 
+        self._remove_directory()
+        self._create_directory()
         db.recreate_db()
 
     def _is_valid_url(self, config):
