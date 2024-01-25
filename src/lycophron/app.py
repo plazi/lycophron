@@ -43,6 +43,11 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def init_project(self):
         self.project.initialize()
 
+    @property
+    def is_initialized(self):
+        """Check if the app is initialized."""
+        return self.project and self.project.is_project_initialized()
+
     def update_app_config(self, config, persist=False) -> None:
         if not self.config:
             # TODO
@@ -56,12 +61,12 @@ class LycophronApp(object, metaclass=SingletonMeta):
         return self.config.is_config_persisted(config_key)
 
     def recreate_project(self):
-        if not self.project.is_project_initialized():
+        if not self.is_initialized:
             raise ValueError("Project is not initialised!")
         self.project.recreate_project()
 
     def validate_project(self):
-        if not self.project.is_project_initialized():
+        if not self.is_initialized:
             raise ValueError("Project is not initialised!")
         self.project.validate_project(self.config)
 
