@@ -1,14 +1,8 @@
-from idutils import is_orcid
 import logging
-from marshmallow import (
-    Schema,
-    fields,
-    EXCLUDE,
-    ValidationError,
-    post_load,
-    validates,
-)
 import re
+
+from idutils import is_orcid
+from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load, validates
 
 from ..errors import RecordValidationError
 

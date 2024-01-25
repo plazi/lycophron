@@ -7,8 +7,13 @@
 """Main lycophron app."""
 
 import os
+import shutil
+from functools import cached_property
+
+from .client import create_session
 from .config import Config
 from .errors import ErrorHandler
+from .logger import init_logging
 from .project import Project
 
 
@@ -29,49 +34,89 @@ class SingletonMeta(type):
 
 
 class LycophronApp(object, metaclass=SingletonMeta):
-    def __init__(self) -> None:
-        self.config = self.init_config()
-        self.project = Project()
+    def __init__(self, name=None) -> None:
+        self._name = name
 
-    def init_config(self) -> Config:
-        config = Config(root_path=os.getcwd())
-        config.create()
-        config.load()
-        config.validate()
-        return config
+    @property
+    def name(self):
+        """Get the name of the app."""
+        return self._name or ""
 
-    def init_project(self):
-        self.project.initialize()
+    @property
+    def root_path(self):
+        """Get the root path of the project."""
+        return os.path.join(os.getcwd(), self.name)
 
     @property
     def is_initialized(self):
         """Check if the app is initialized."""
-        return self.project and self.project.is_project_initialized()
+        return self.config.is_initialized and self.project.is_initialized
 
-    def update_app_config(self, config, persist=False) -> None:
-        if not self.config:
-            # TODO
-            raise ValueError("Config not found")
-        try:
-            self.config.update_config(config, persist)
-        except Exception as e:
-            ErrorHandler.handle_error(e)
+    @cached_property
+    def config(self):
+        """Get the config."""
+        return self._init_config()
 
-    def is_config_persisted(self, config_key):
-        return self.config.is_config_persisted(config_key)
+    @cached_property
+    def project(self):
+        """Get the project."""
+        return self._init_project()
 
-    def recreate_project(self):
-        if not self.is_initialized:
-            raise ValueError("Project is not initialised!")
-        self.project.recreate_project()
+    def init(self):
+        """Initialize the app.
+
+        This method is responsible for creating the project directory, the config, database and logger files.
+        """
+        self._create_directory()
+        self._init_logging()
+        self._init_config()
+        self._init_project()
+
+    def _create_directory(self):
+        """Create the app directory."""
+        os.makedirs(os.path.join(self.root_path, "files"), exist_ok=True)
+
+    def _remove_directory(self):
+        """Remove the app directory."""
+        shutil.rmtree(os.path.join(self.root_path, "files"), ignore_errors=True)
+
+    def _init_config(self) -> Config:
+        """Initialize the config."""
+        default_db_location = (
+            f"sqlite:///{os.path.join(self.root_path, 'lycophron.db')}"
+        )
+        c = Config(
+            root_path=self.root_path,
+            defaults={
+                "SQLALCHEMY_DATABASE_URI": default_db_location,
+            },
+        )
+        c.create()
+        c.load()
+        c.validate()
+
+        return c
+
+    def _init_project(self):
+        """Initialize the project."""
+        p = Project(self.config["SQLALCHEMY_DATABASE_URI"])
+        p.initialize()
+        return p
+
+    def _init_logging(self):
+        """Initialize logging."""
+        init_logging(self.root_path)
+
+    def recreate(self):
+        self.config.recreate()
+        self.project.recreate()
+        self._remove_directory()
+        self._create_directory()
 
     def validate_project(self):
         if not self.is_initialized:
             raise ValueError("Project is not initialised!")
-        self.project.validate_project(self.config)
-
-    def is_project_initialized(self):
-        return self.project and self.project.is_project_initialized()
+        self.project.validate_project()
 
     def load_file(self, filename):
         self.project.load_file(filename)

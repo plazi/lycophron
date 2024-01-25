@@ -6,20 +6,31 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron logger class."""
 
-# TODO load  configs from a higher level file.
 # TODO logging is currently implemented without using a class-based approach.
 
-from logging import Logger, INFO, WARNING
+import logging
+import os
+import sys
 
-DEFAULT_LEVEL = INFO
 
+def init_logging(root_path=os.getcwd()):
+    """Initialises logging in two steps:
+    1 - adds a "user-friendly" logger that prints errors to stdout.
+    2 - adds a "dev-only" logger tha prints errors to a file.
+    """
+    logger = logging.getLogger("lycophron")
+    dev_logger = logging.getLogger("lycophron_dev")
 
-class LycophronLogger(Logger):
-    """Represents a lycophron specific logger.
-    Adds configuration to the built-in logger."""
+    formatter = logging.Formatter("%(asctime)s : %(message)s")
+    dev_formatter = logging.Formatter("%(asctime)s : %(message)s\n")
 
-    level = DEFAULT_LEVEL
-    name = "lycophron"
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.INFO)
+    stdout_handler.setFormatter(formatter)
 
-    def __init__(self, name, level) -> None:
-        super().__init__(name, level)
+    dev_file_handler = logging.FileHandler(f"{root_path}/dev_logs.log")
+    dev_file_handler.setLevel(logging.ERROR)
+    dev_file_handler.setFormatter(dev_formatter)
+
+    logger.addHandler(stdout_handler)
+    dev_logger.addHandler(dev_file_handler)

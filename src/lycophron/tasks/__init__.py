@@ -6,8 +6,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks entry point."""
 
-from celery import Celery
 from pathlib import Path
+
+from celery import Celery
 
 
 def init_celery_app():
