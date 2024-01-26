@@ -22,6 +22,187 @@ class Defaults:
     ZENODO_URL = "https://sandbox.zenodo.org/api"
     TOKEN = "CHANGEME"
 
+    LYCOPHRON_FIELDS = ["id", "filenames"]
+
+    # Base RDM fields
+    RDM_FIELDS = [
+        "resource_type.id",
+        "creators.type",
+        "creators.given_name",
+        "creators.family_name",
+        "creators.name",
+        "creators.orcid",
+        "creators.gnd",
+        "creators.isni",
+        "creators.ror",
+        "creators.role.id",
+        "creators.affiliations.id",
+        "creators.affiliations.name",
+        "title",
+        "publication_date",
+        # "additional_titles.title",
+        # "additional_titles.type.id",
+        # "additional_titles.lang.id",
+        "description",
+        "abstract.description",  # This is an additional_descriptions
+        # "abstract.lang.id",
+        "method.description",  # This is an additional_descriptions
+        # "method.lang.id",
+        "notes.description",  # This is an additional_descriptions
+        # "notes.lang.id",
+        # "other.description",  # This is an additional_descriptions
+        # "other.lang.id",
+        # "series-information.description",  # This is an additional_descriptions
+        # "series-information.lang.id",
+        # "table-of-contents.description",  # This is an additional_descriptions
+        # "table-of-contents.lang.id",
+        # "technical-info.description",  # This is an additional_descriptions
+        # "technical-info.lang.id",
+        "rights.id",
+        "rights.title",
+        # "rights.description",
+        # "rights.link",
+        "contributors.type",
+        "contributors.given_name",
+        "contributors.family_name",
+        "contributors.name",
+        "contributors.orcid",
+        "contributors.gnd",
+        "contributors.isni",
+        "contributors.ror",
+        "contributors.role.id",
+        "contributors.affiliations.id",
+        "contributors.affiliations.name",
+        # "subjects.id",
+        "subjects.subject",
+        "languages.id",
+        # "dates.date",
+        # "dates.type.id",
+        # "dates.description",
+        "version",
+        "publisher",
+        "identifiers.identifier",
+        # "identifiers.scheme",  # Auto guessed
+        "related_identifiers.identifier",
+        # "related_identifiers.scheme",  # Auto guessed
+        "related_identifiers.relation_type.id",
+        "related_identifiers.resource_type.id",
+        # "funding.funder.id",
+        # "funding.funder.name",
+        # "funding.award.id",
+        # "funding.award.title",
+        # "funding.award.number",
+        # "funding.award.identifiers.scheme",
+        # "funding.award.identifiers.identifier",
+        "references.reference",
+        # "references.identifier",
+        # "references.scheme",
+        "default_community",
+        "communities",
+        "doi",
+        "locations.lat",
+        "locations.lon",
+        "locations.place",
+        "locations.description",
+    ]
+
+    ACCESS_FIELDS = [
+        "access.files",
+        "access.embargo.active",
+        "access.embargo.until",
+        "access.embargo.reason",
+    ]
+
+    # The base ones are the ones that will be formatted to field:field.value f.e. journal:journal.title
+    BASE_CUSTOM_FIELD_PREFIXES = {
+        "journal": "journal",
+        "meeting": "meeting",
+        "imprint": "imprint",
+        "thesis": "university",
+    }
+
+    # This fields will be formatted to field.value f.e. dwc.class
+    ADDITIONAL_CUSTOM_FIELD_PREFIXES = {
+        "dwc": "dwc",
+        "gbif-dwc": "gbif-dwc",
+        "ac": "ac",
+        "dc": "dc",
+        "openbiodiv": "openbiodiv",
+        "obo": "obo",
+    }
+
+    # Base field definitions
+    BASE_CUSTOM_FIELD_DEFINITIONS = {
+        "journal": ["title", "issue", "volume", "pages", "issn"],
+        "meeting": [
+            "acronym",
+            "dates",
+            "place",
+            "session_part",
+            "session",
+            "title",
+            "url",
+        ],
+        "imprint": ["title", "isbn", "pages", "place"],
+        "thesis": ["thesis"],
+    }
+
+    # Additional field definitions
+    ADDITIONAL_CUSTOM_FIELD_DEFINITIONS = {
+        "dwc": [
+            "basisOfRecord",
+            "catalogNumber",
+            "class",
+            "collectionCode",
+            "country",
+            "county",
+            "dateIdentified",
+            "decimalLatitude",
+            "decimalLongitude",
+            "eventDate",
+            "family",
+            "genus",
+            "identifiedBy",
+            "individualCount",
+            "institutionCode",
+            "kingdom",
+            "lifeStage",
+            "locality",
+            "materialSampleID",
+            "namePublishedInID",
+            "namePublishedInYear",
+            "order",
+            "otherCatalogNumbers",
+            "phylum",
+            "preparations",
+            "recordedBy",
+            "scientificName",
+            "scientificNameAuthorship",
+            "scientificNameID",
+            "sex",
+            "specificEpithet",
+            "stateProvince",
+            "taxonID",
+            "taxonRank",
+            "taxonomicStatus",
+            "typeStatus",
+            "verbatimElevation",
+            "verbatimEventDate",
+        ],
+        "gbif-dwc": ["identifiedByID", "recordedByID"],
+        "ac": [
+            "associatedSpecimenReference",
+            "captureDevice",
+            "physicalSetting",
+            "resourceCreationTechnique",
+            "subjectOrientation",
+            "subjectPart",
+        ],
+        "dc": ["creator", "rightsHolder"],
+        "openbiodiv": ["TaxonomicConceptLabel"],
+        "obo": ["RO_0002453"],
+    }
+
 
 required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
 

@@ -77,11 +77,15 @@ class InvalidRecordData(RecordError):
 class ErrorHandler(object):
     @staticmethod
     def handle_error(error):
+        if not error:
+            return
         if type(error) == list:
             for er in error:
                 ErrorHandler.log_error(er)
+            raise error[0]
         if isinstance(error, Exception):
             ErrorHandler.log_error(error)
+            raise error
 
     def log_error(error):
         if isinstance(error, LycophronError):

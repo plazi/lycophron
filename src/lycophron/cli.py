@@ -5,6 +5,7 @@
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron cli tools."""
+from itertools import chain
 
 import click
 import csv
@@ -12,183 +13,15 @@ import csv
 from lycophron.errors import InvalidDirectoryError
 from .app import LycophronApp
 
-lycophron_fields = ["id", "filenames"]
 
-# Base RDM fields
-rdm_fields = [
-    "resource_type.id",
-    "creators.type",
-    "creators.given_name",
-    "creators.family_name",
-    "creators.name",
-    "creators.orcid",
-    "creators.gnd",
-    "creators.isni",
-    "creators.ror",
-    "creators.role.id",
-    "creators.affiliations.id",
-    "creators.affiliations.name",
-    "title",
-    "publication_date",
-    # "additional_titles.title",
-    # "additional_titles.type.id",
-    # "additional_titles.lang.id",
-    "description",
-    "abstract.description",  # This is an additional_descriptions
-    # "abstract.lang.id",
-    "method.description",  # This is an additional_descriptions
-    # "method.lang.id",
-    "notes.description",  # This is an additional_descriptions
-    # "notes.lang.id",
-    # "other.description",  # This is an additional_descriptions
-    # "other.lang.id",
-    # "series-information.description",  # This is an additional_descriptions
-    # "series-information.lang.id",
-    # "table-of-contents.description",  # This is an additional_descriptions
-    # "table-of-contents.lang.id",
-    # "technical-info.description",  # This is an additional_descriptions
-    # "technical-info.lang.id",
-    "rights.id",
-    "rights.title",
-    # "rights.description",
-    # "rights.link",
-    "contributors.type",
-    "contributors.given_name",
-    "contributors.family_name",
-    "contributors.name",
-    "contributors.orcid",
-    "contributors.gnd",
-    "contributors.isni",
-    "contributors.ror",
-    "contributors.role.id",
-    "contributors.affiliations.id",
-    "contributors.affiliations.name",
-    # "subjects.id",
-    "subjects.subject",
-    "languages.id",
-    # "dates.date",
-    # "dates.type.id",
-    # "dates.description",
-    "version",
-    "publisher",
-    "identifiers.identifier",
-    # "identifiers.scheme",  # Auto guessed
-    "related_identifiers.identifier",
-    # "related_identifiers.scheme",  # Auto guessed
-    "related_identifiers.relation_type.id",
-    "related_identifiers.resource_type.id",
-    # "funding.funder.id",
-    # "funding.funder.name",
-    # "funding.award.id",
-    # "funding.award.title",
-    # "funding.award.number",
-    # "funding.award.identifiers.scheme",
-    # "funding.award.identifiers.identifier",
-    "references.reference",
-    # "references.identifier",
-    # "references.scheme",
-    "default_community",
-    "communities",
-    "doi",
-    "locations.lat",
-    "locations.lon",
-    "locations.place",
-    "locations.description",
-]
-
-access_fields = [
-    "access.files",
-    "access.embargo.active",
-    "access.embargo.until",
-    "access.embargo.reason",
-]
-
-# Field prefixes
-field_prefixes = {
-    "journal": "journal",
-    "meeting": "meeting",
-    "imprint": "imprint",
-    "thesis": "university",
-    "dwc": "dwc",
-    "gbif-dwc": "gbif-dwc",
-    "ac": "ac",
-    "dc": "dc",
-    "openbiodiv": "openbiodiv",
-    "obo": "obo",
-}
-
-# Field definitions
-field_definitions = {
-    "journal": ["title", "issue", "volume", "pages", "issn"],
-    "meeting": [
-        "acronym",
-        "dates",
-        "place",
-        "session_part",
-        "session",
-        "title",
-        "url",
-    ],
-    "imprint": ["title", "isbn", "pages", "place"],
-    "thesis": ["thesis"],
-    "dwc": [
-        "basisOfRecord",
-        "catalogNumber",
-        "class",
-        "collectionCode",
-        "country",
-        "county",
-        "dateIdentified",
-        "decimalLatitude",
-        "decimalLongitude",
-        "eventDate",
-        "family",
-        "genus",
-        "identifiedBy",
-        "individualCount",
-        "institutionCode",
-        "kingdom",
-        "lifeStage",
-        "locality",
-        "materialSampleID",
-        "namePublishedInID",
-        "namePublishedInYear",
-        "order",
-        "otherCatalogNumbers",
-        "phylum",
-        "preparations",
-        "recordedBy",
-        "scientificName",
-        "scientificNameAuthorship",
-        "scientificNameID",
-        "sex",
-        "specificEpithet",
-        "stateProvince",
-        "taxonID",
-        "taxonRank",
-        "taxonomicStatus",
-        "typeStatus",
-        "verbatimElevation",
-        "verbatimEventDate",
-    ],
-    "gbif-dwc": ["identifiedByID", "recordedByID"],
-    "ac": [
-        "associatedSpecimenReference",
-        "captureDevice",
-        "physicalSetting",
-        "resourceCreationTechnique",
-        "subjectOrientation",
-        "subjectPart",
-    ],
-    "dc": ["creator", "rightsHolder"],
-    "openbiodiv": ["TaxonomicConceptLabel"],
-    "obo": ["RO_0002453"],
-}
-
-
-def _generate_fields(prefix, fields):
+def _generate_base_fields(prefix, fields):
     """Generates fields with prefixes."""
     return [f"{prefix}.{field}" for field in fields]
+
+
+def _generate_additional_fields(prefix, fields):
+    """Generates fields with prefixes."""
+    return [f"{prefix}:{field}" for field in fields]
 
 
 @click.group()
@@ -215,7 +48,11 @@ def init(pname=None, token=None):
 def load(inputfile):
     """Loads CSV into the local DB"""
     app = LycophronApp()
-    app.load_file(inputfile)
+    try:
+        app.load_file(inputfile)
+        click.echo(click.style("Record loaded correctly.", fg="green"))
+    except Exception as e:
+        click.echo(click.style(e, fg="red"))
 
 
 @lycophron.command()
@@ -273,25 +110,40 @@ def new_template(
 ):
     """Creates a new CSV template."""
     # Consolidate all fields
-    all_fields = {
-        key: _generate_fields(field_prefixes[key], fields)
-        for key, fields in field_definitions.items()
+    app = LycophronApp()
+
+    all_base_custom_fields = {
+        key: _generate_base_fields(
+            app.config["BASE_CUSTOM_FIELD_PREFIXES"][key], fields
+        )
+        for key, fields in app.config["BASE_CUSTOM_FIELD_DEFINITIONS"].items()
     }
 
+    all_additional_custom_fields = {
+        key: _generate_additional_fields(
+            app.config["ADDITIONAL_CUSTOM_FIELD_PREFIXES"][key], fields
+        )
+        for key, fields in app.config["ADDITIONAL_CUSTOM_FIELD_DEFINITIONS"].items()
+    }
+    all_custom_fields = {**all_base_custom_fields, **all_additional_custom_fields}
+
     # Initialize the list of fields with base lycophron and RDM fields
-    fields = lycophron_fields.copy() + rdm_fields.copy()
+    fields = app.config["LYCOPHRON_FIELDS"].copy() + app.config["RDM_FIELDS"].copy()
     # Add conditional fields if enabled to headers
     if all:
-        fields.extend(access_fields.copy())
-        for namespace in field_definitions.keys():
-            fields.extend(all_fields.get(namespace, []))
+        fields.extend(app.config["ACCESS_FIELDS"].copy())
+        for namespace in chain(
+            app.config["BASE_CUSTOM_FIELD_DEFINITIONS"].keys(),
+            app.config["ADDITIONAL_CUSTOM_FIELD_DEFINITIONS"].keys(),
+        ):
+            fields.extend(all_custom_fields.get(namespace, []))
     else:
         if access:
-            fields.extend(access_fields.copy())
+            fields.extend(app.config["ACCESS_FIELDS"].copy())
         if custom:
             namespaces = custom.split(",")
             for namespace in namespaces:
-                fields.extend(all_fields.get(namespace, []))
+                fields.extend(all_custom_fields.get(namespace, []))
 
     # Write the fields to the CSV file
     csv_writer = csv.writer(filename)
@@ -313,13 +165,22 @@ def validate(file):
 
     # Generate all possible valid headers
     valid_headers = (
-        lycophron_fields.copy()
-        + rdm_fields.copy()
-        + access_fields.copy()
+        app.config["LYCOPHRON_FIELDS"].copy()
+        + app.config["RDM_FIELDS"].copy()
+        + app.config["ACCESS_FIELDS"].copy()
         + [
             field
-            for key, value in field_definitions.items()
-            for field in _generate_fields(field_prefixes.get(key), value)
+            for key, value in app.config["BASE_CUSTOM_FIELD_DEFINITIONS"].items()
+            for field in _generate_base_fields(
+                app.config["BASE_CUSTOM_FIELD_PREFIXES"].get(key), value
+            )
+        ]
+        + [
+            field
+            for key, value in app.config["ADDITIONAL_CUSTOM_FIELD_DEFINITIONS"].items()
+            for field in _generate_additional_fields(
+                app.config["ADDITIONAL_CUSTOM_FIELD_PREFIXES"].get(key), value
+            )
         ]
     )
 
