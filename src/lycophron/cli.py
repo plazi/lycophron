@@ -199,7 +199,7 @@ def lycophron():
 
 @lycophron.command()
 @click.argument("pname", required=False)
-@click.option("--token", prompt="Zenodo token", default="CHANGEME")
+@click.option("--token", prompt="Zenodo token", default="", required=False)
 def init(pname=None, token=None):
     """Command to intialize the project"""
     _name = pname or ""
@@ -207,6 +207,7 @@ def init(pname=None, token=None):
     app.init()
     if token:
         app.config.update_config({"token": token}, persist=True)
+    click.secho(f"Project initialized in directory {app.root_path}.", fg="green")
 
 
 @lycophron.command()
