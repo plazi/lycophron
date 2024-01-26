@@ -6,11 +6,15 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron project classes (business logic layer)."""
 
+import os
+from urllib.parse import urlparse
+
 from .client import create_session
 from .config import required_configs
 from .errors import (
     DatabaseAlreadyExists,
     ErrorHandler,
+    InvalidDirectoryError,
 )
 from .loaders import LoaderFactory
 from .schemas.record import RecordRow
@@ -39,17 +43,17 @@ class Project:
     def is_initialized(self):
         return self.db.database_exists()
 
-    def load_file(self, filename):
-        data = self.process_file(filename)
+    def load_file(self, filename, config):
+        data = self.process_file(filename, config)
         for record in data:
             self.add_record(record)
         if len(self.errors):
             ErrorHandler.handle_error(self.errors)
 
-    def process_file(self, filename):
+    def process_file(self, filename, config):
         factory = LoaderFactory()
         loader = factory.create_loader(filename)
-        row_schema = RecordRow()
+        row_schema = RecordRow(context=config)
         records = []
         for data in loader.load(filename):
             try:

@@ -7,51 +7,69 @@
 """Lycophron data models."""
 
 import enum
-from sqlalchemy import Column, Integer, String, JSON, Enum
+from sqlalchemy import Column, String, JSON, Enum, ForeignKey, Integer
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
 
 
 class RecordStatus(str, enum.Enum):
-    NEW = "NEW"
-    DEPOSIT_FAIL = "DEPOSIT_FAIL"
-    DEPOSIT_SUCCESS = "DEPOSIT_SUCCESS"
-    PUBLISH_FAIL = "RECORD_FAIL"
-    PUBLISH_SUCCESS = "PUBLISH_SUCCESS"
-    FILE_FAIL = "FILE_FAIL"
-    FILE_SUCCESS = "FILE_SUCCESS"
+    TODO = "TODO"
+    DRAFT_CREATED = "DRAFT_CREATED"
+    METADATA_UPDATED = "METADATA_UPDATED"
+    FILE_UPLOADED = "FILE_UPLOADED"
+    PUBLISHED = "PUBLISHED"
+    FAILED = "FAILED"
+    COMMUNITIES_ADDED = "COMMUNITIES_ADDED"
 
 
 class Record(Model, Timestamp):
     """Local representation of a record."""
 
     __tablename__ = "record"
-    id = Column(Integer, primary_key=True)
-    communities = Column(JSON)
-    doi = Column(String)
-    deposit_id = Column(String)
+
+    id = Column(String, primary_key=True)
+
+    # Already validated by marshmallow
+    input_metadata = Column(JSON)
+
+    communities = relationship("Community", backref="record")
+    files = relationship("File", backref="record")
+
     # Represents the last known metadata's state on Zenodo
     remote_metadata = Column(JSON)
+
+    # State
+    status = Column(Enum(RecordStatus), default=RecordStatus.TODO)
     response = Column(JSON)  # TODO response, errors
-    # Already validated by marshmallow
-    original = Column(JSON)
-    files = Column(JSON)
-    status = Column(Enum(RecordStatus), default=RecordStatus.NEW)
-    links = Column(JSON, default={})
 
-    def __repr__(self) -> str:
-        return f"Record {self.doi}"
 
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "doi": self.doi,
-            "deposit_id": self.deposit_id,
-            "status": self.status,
-            "communities": self.communities,
-            "original": self.original,
-            "files": self.files,
-            "links": self.links,
-        }
+class FileStatus(str, enum.Enum):
+    TODO = "TODO"
+    FILE_CREATED = "FILE_CREATED"
+    FILE_UPLOADED = "FILE_UPLOADED"
+
+
+class File(Model, Timestamp):
+    __tablename__ = "file"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_id = Column(String, ForeignKey("record.id"))
+    filename = Column(String)
+    status = Column(Enum(FileStatus), default=FileStatus.TODO)
+
+
+class CommunityStatus(str, enum.Enum):
+    TODO = "TODO"
+    REQUESTED_CREATED = "REQUESTED_CREATED"
+
+
+class Community(Model, Timestamp):
+    __tablename__ = "community"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    record_id = Column(String, ForeignKey("record.id"))
+    slug = Column(String)
+    status = Column(Enum(CommunityStatus), default=CommunityStatus.TODO)

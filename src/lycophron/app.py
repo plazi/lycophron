@@ -50,16 +50,25 @@ class LycophronApp(object, metaclass=SingletonMeta):
     @cached_property
     def config(self):
         """Get the config."""
-        return self._init_config()
+        default_db_location = (
+            f"sqlite:///{os.path.join(self.root_path, 'lycophron.db')}"
+        )
+        c = Config(
+            root_path=self.root_path,
+            defaults={
+                "SQLALCHEMY_DATABASE_URI": default_db_location,
+            },
+        )
+        c.load()
+        return c
 
     @cached_property
     def project(self):
         """Get the project."""
-        return self._init_project()
+        return Project(self.config["SQLALCHEMY_DATABASE_URI"])
 
     def init(self):
         """Initialize the app.
-
         This method is responsible for creating the project directory, the config, database and logger files.
         """
         self._create_directory()
@@ -84,26 +93,11 @@ class LycophronApp(object, metaclass=SingletonMeta):
 
     def _init_config(self) -> Config:
         """Initialize the config."""
-        default_db_location = (
-            f"sqlite:///{os.path.join(self.root_path, 'lycophron.db')}"
-        )
-        c = Config(
-            root_path=self.root_path,
-            defaults={
-                "SQLALCHEMY_DATABASE_URI": default_db_location,
-            },
-        )
-        c.create()
-        c.load()
-        c.validate()
-
-        return c
+        self.config.create()
 
     def _init_project(self):
         """Initialize the project."""
-        p = Project(self.config["SQLALCHEMY_DATABASE_URI"])
-        p.initialize()
-        return p
+        self.project.initialize()
 
     def _init_logging(self):
         """Initialize logging."""
@@ -120,7 +114,7 @@ class LycophronApp(object, metaclass=SingletonMeta):
         self.config.validate()
 
     def load_file(self, filename):
-        self.project.load_file(filename)
+        self.project.load_file(filename, self.config)
 
     def publish_records(self, num_records=None):
         publish_url = urlparse.urljoin(
@@ -131,7 +125,7 @@ class LycophronApp(object, metaclass=SingletonMeta):
     # TODO not used by now, it can be added later as part of the client validation
     def _is_valid_token(self, config):
         session = create_session(config["TOKEN"])
-        url = config["ZENODO_URL"] + "/api/me"
+        url = config["ZENODO_URL"] + "/me"
         response = session.get(url)
         if response.status_code != 200:
             raise ValueError(

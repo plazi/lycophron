@@ -15,7 +15,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy_utils.functions import create_database, database_exists, drop_database
 
 from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
-from .models import Model, Record, RecordStatus
+from .models import Model, Record, RecordStatus, Community, File
 
 logger = logging.getLogger("lycophron")
 dev_logger = logging.getLogger("lycophron_dev")
@@ -84,17 +84,24 @@ class LycophronDB(object):
         """
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record add.")
-        self.session.add(
-            Record(
-                doi=record.get("doi", None),
-                deposit_id=record.get("deposit_id", None),
-                remote_metadata={},
-                response={},
-                original=record["metadata"],
-                files=record["files"],
-                communities=record["communities"],
-            )
+
+        new_record = Record(
+            id=record.get("id"),
+            input_metadata=record.get("input_metadata"),
+            remote_metadata={},
         )
+        cleaned_community = [
+            community for community in record.get("communities") if community
+        ]
+        cleaned_files = [file for file in record.get("files") if file]
+
+        for community in cleaned_community:
+            community = Community(slug=community)
+            new_record.communities.append(community)
+        for file in cleaned_files:
+            file = File(filename=file)
+            new_record.files.append(file)
+        self.session.add(new_record)
         try:
             self.session.commit()
         except Exception as e:
