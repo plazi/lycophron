@@ -29,7 +29,7 @@ The tool supports the upload through CSV files that describe each record to be u
 2. Initalize a local project named "monkeys"
 
     ```bash
-    lycophron init monkeys --force
+    lycophron init monkeys
     ```
 
     List the project contents:
@@ -124,8 +124,8 @@ python -m pip install requirements-dev.txt
 
 This command initializes the project, creates necessary configuration files, and sets up a local database.
 
+`init [name]` : initialize the app with the given name
 `init --token` : initialize the app with a token
-`init --force` : initialize the app and wipe the local database
 
 >:warning: Adjust configurations in the generated files to meet specific upload requirements.
 
