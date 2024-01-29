@@ -19,9 +19,18 @@ class ConfigError(LycophronError):
 
 
 class ConfigNotFound(ConfigError):
+    hint = "The configuration was deemed as required by the application. Try setting it in the configuration file."
+
     def __init__(self, config_name, *args: object) -> None:
         super().__init__(*args)
         self.config_name = config_name
+
+    def __repr__(self) -> str:
+        return f"'{self.config_name}' was not found."
+
+
+class InvalidConfig(ConfigError):
+    pass
 
 
 class DatabaseError(LycophronError):
@@ -83,6 +92,9 @@ class ErrorHandler(object):
 
 
 def serialize(error: Exception) -> str:
-    if hasattr(error, "error_type"):
-        return f"{getattr(error, 'error_type')}: {error}"
-    return str(error)
+    msg = error.__repr__()
+    er_type = getattr(error, "error_type", "")
+    msg = f"[{er_type}] {msg}"
+    if hasattr(error, "hint"):
+        msg = f"{msg}\nHint: {getattr(error, 'hint')}"
+    return msg

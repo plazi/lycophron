@@ -9,6 +9,7 @@
 import json
 import os
 import time
+from celery import Task
 
 from ..client import create_session
 from ..db import LycophronDB
