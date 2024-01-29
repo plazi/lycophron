@@ -212,15 +212,6 @@ def init(pname=None, token=None):
 
 @lycophron.command()
 @click.option("--inputfile", required=True)
-def validate(inputfile):
-    """Command to validate data"""
-
-    # TODO maybe not
-    app = LycophronApp()
-
-
-@lycophron.command()
-@click.option("--inputfile", required=True)
 def load(inputfile):
     """Loads CSV into the local DB"""
     app = LycophronApp()
@@ -312,13 +303,8 @@ def new_template(
 def validate(file):
     """Validates the config and headers of a CSV file."""
     app = LycophronApp()
-    # Validates config
-    try:
-        app.validate_project()
-        click.echo(click.style("Configuration validation passed.", fg="green"))
-    except (ValueError, InvalidDirectoryError) as e:
-        click.echo(click.style(e, fg="red"))
-        return
+    app.validate()
+    click.secho("App validation passed.", fg="green")
 
     # Validates headers
     with open(file, "r", newline="", encoding="utf-8") as csvfile:
@@ -343,18 +329,12 @@ def validate(file):
     ]
 
     if not invalid_headers:
-        click.echo(click.style("CSV header validation passed.", fg="green"))
+        click.secho("CSV header validation passed.", fg="green")
     else:
-        click.echo(
-            click.style(
-                "CSV header validation failed. Invalid headers found:", fg="red"
-            )
-        )
+        click.secho("CSV header validation failed. Invalid headers found:", fg="red")
         for header in invalid_headers:
-            click.echo(click.style(f"- {header}", fg="red"))
+            click.secho(f"- {header}", fg="red")
 
-
-lycophron.add_command(init)
 
 if __name__ == "__main__":
     lycophron()

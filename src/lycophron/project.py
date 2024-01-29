@@ -6,17 +6,11 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron project classes (business logic layer)."""
 
-import os
-from urllib.parse import shutil
-import urlparse
-
 from .client import create_session
 from .config import required_configs
 from .errors import (
     DatabaseAlreadyExists,
     ErrorHandler,
-    InvalidRecordData,
-    InvalidDirectoryError,
 )
 from .loaders import LoaderFactory
 from .schemas.record import RecordRow
@@ -53,8 +47,6 @@ class Project:
             ErrorHandler.handle_error(self.errors)
 
     def process_file(self, filename):
-        if not self.is_initialized:
-            raise Exception("Project is not initialised.")
         factory = LoaderFactory()
         loader = factory.create_loader(filename)
         row_schema = RecordRow()
@@ -82,39 +74,9 @@ class Project:
         except DatabaseAlreadyExists as e:
             ErrorHandler.handle_error(e)
 
-    def recreate_project(self):
-        from .db import db
-
-        self._remove_directory()
-        self._create_directory()
-        db.recreate_db()
-
-    def _is_valid_url(self, config):
-        parsed_url = urlparse(config["ZENODO_URL"])
-        if not all([parsed_url.scheme, parsed_url.netloc]):
-            raise ValueError(f"Invalid URL provided: {config['ZENODO_URL']}.")
-
-    def _is_valid_token(self, config):
-        session = create_session(config["TOKEN"])
-        url = config["ZENODO_URL"] + "/api/me"
-        response = session.get(url)
-        if response.status_code != 200:
-            raise ValueError(
-                f"Invalid token or URL provided. Token: {config['TOKEN']}, URL: {config['ZENODO_URL']}"
-            )
-
-    def validate_project(self, config):
-        # Configs exist
-        for required_value in required_configs:
-            if not config[required_value]:
-                raise ValueError(f"Missing required config: {required_value}")
-        # Configs are valid (sqlite uri is already validated, as the db needs to be initialized in order to reach this)
-        self._is_valid_url(config)
-        self._is_valid_token(config)
-        # Folder for files does exist
-        folder_name = "files"
-        if not os.path.exists(folder_name) or not os.path.isdir(folder_name):
-            raise InvalidDirectoryError(f"Missing required folder: {folder_name}")
+    def recreate(self):
+        """Recreate the project"""
+        self.db.recreate_db()
 
     def publish_records(self, url, token, num_records=None):
         from .tasks.tasks import publish_records

@@ -9,10 +9,10 @@
 import os
 import shutil
 from functools import cached_property
-
+from urllib import parse as urlparse
 from .client import create_session
 from .config import Config
-from .errors import ErrorHandler
+from .errors import InvalidDirectoryError
 from .logger import init_logging
 from .project import Project
 
@@ -47,11 +47,6 @@ class LycophronApp(object, metaclass=SingletonMeta):
         """Get the root path of the project."""
         return os.path.join(os.getcwd(), self.name)
 
-    @property
-    def is_initialized(self):
-        """Check if the app is initialized."""
-        return self.config.is_initialized and self.project.is_initialized
-
     @cached_property
     def config(self):
         """Get the config."""
@@ -79,6 +74,13 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def _remove_directory(self):
         """Remove the app directory."""
         shutil.rmtree(os.path.join(self.root_path, "files"), ignore_errors=True)
+
+    def _validate_directory(self):
+        """Validate the app directory."""
+        if not os.path.exists(os.path.join(self.root_path, "files")):
+            raise InvalidDirectoryError(
+                f"Directory {self.root_path} does not exist. Create it first."
+            )
 
     def _init_config(self) -> Config:
         """Initialize the config."""
@@ -113,17 +115,25 @@ class LycophronApp(object, metaclass=SingletonMeta):
         self._remove_directory()
         self._create_directory()
 
-    def validate_project(self):
-        if not self.is_initialized:
-            raise ValueError("Project is not initialised!")
-        self.project.validate_project()
+    def validate(self):
+        self._validate_directory()
+        self.config.validate()
 
     def load_file(self, filename):
         self.project.load_file(filename)
 
     def publish_records(self, num_records=None):
-        publish_url = self.config["ZENODO_URL"] + "/api/deposit/depositions"
+        publish_url = urlparse.urljoin(
+            self.config["ZENODO_URL"], "/deposit/depositions"
+        )
         self.project.publish_records(publish_url, self.config["TOKEN"], num_records)
 
-
-app = LycophronApp()
+    # TODO not used by now, it can be added later as part of the client validation
+    def _is_valid_token(self, config):
+        session = create_session(config["TOKEN"])
+        url = config["ZENODO_URL"] + "/api/me"
+        response = session.get(url)
+        if response.status_code != 200:
+            raise ValueError(
+                f"Invalid token or URL provided. Token: {config['TOKEN']}, URL: {config['ZENODO_URL']}"
+            )

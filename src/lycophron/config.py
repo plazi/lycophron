@@ -11,8 +11,8 @@ import logging
 import os
 import types
 from abc import ABC, abstractmethod
-
-from .errors import ConfigNotFound, ErrorHandler
+from urllib.parse import urlparse
+from .errors import ConfigNotFound, ErrorHandler, InvalidConfig, ConfigError
 
 logger = logging.getLogger("lycophron")
 
@@ -20,6 +20,7 @@ logger = logging.getLogger("lycophron")
 class Defaults:
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
     ZENODO_URL = "https://sandbox.zenodo.org/api"
+    TOKEN = "CHANGEME"
 
 
 required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
@@ -64,12 +65,25 @@ class Config(dict):
             self.cfgLoader.create()
 
     def validate(self):
+        """Validate the config."""
+        self._all_configs_required_set()
+        self._is_zendodo_url_valid()
+
+    def _all_configs_required_set(self):
+        """Check if all required configs are set."""
         errors = []
         for conf in required_configs:
             if not self.get(conf):
                 errors.append(ConfigNotFound(conf))
-        ErrorHandler.handle_error(errors)
-        return True
+        if errors:
+            ErrorHandler.handle_error(errors)
+            raise errors[0]
+
+    def _is_zendodo_url_valid(self):
+        """Check if the URL is valid."""
+        parsed_url = urlparse(self["ZENODO_URL"])
+        if not all([parsed_url.scheme, parsed_url.netloc]):
+            raise InvalidConfig(f"Invalid URL provided: {self['ZENODO_URL']}.")
 
     def update_config(self, value, persist=False):
         if type(value) is not dict:
