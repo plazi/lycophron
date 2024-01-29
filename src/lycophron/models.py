@@ -14,9 +14,9 @@ from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
 
-
 class RecordStatus(str, enum.Enum):
     TODO = "TODO"
+    QUEUED = "QUEUED"
     DRAFT_CREATED = "DRAFT_CREATED"
     METADATA_UPDATED = "METADATA_UPDATED"
     FILE_UPLOADED = "FILE_UPLOADED"
@@ -24,14 +24,14 @@ class RecordStatus(str, enum.Enum):
     FAILED = "FAILED"
     COMMUNITIES_ADDED = "COMMUNITIES_ADDED"
 
-
 class Record(Model, Timestamp):
     """Local representation of a record."""
 
     __tablename__ = "record"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
 
+    upload_id = Column(String, default=None)
     # Already validated by marshmallow
     input_metadata = Column(JSON)
 
@@ -39,18 +39,15 @@ class Record(Model, Timestamp):
     files = relationship("File", backref="record")
 
     # Represents the last known metadata's state on Zenodo
-    remote_metadata = Column(JSON)
+    remote_metadata = Column(JSON, default=None)
 
     # State
     status = Column(Enum(RecordStatus), default=RecordStatus.TODO)
-    response = Column(JSON)  # TODO response, errors
-
+    response = Column(JSON, default=None)  # TODO response, errors
 
 class FileStatus(str, enum.Enum):
     TODO = "TODO"
-    FILE_CREATED = "FILE_CREATED"
-    FILE_UPLOADED = "FILE_UPLOADED"
-
+    UPLOADED = "UPLOADED"
 
 class File(Model, Timestamp):
     __tablename__ = "file"
@@ -60,11 +57,9 @@ class File(Model, Timestamp):
     filename = Column(String)
     status = Column(Enum(FileStatus), default=FileStatus.TODO)
 
-
 class CommunityStatus(str, enum.Enum):
     TODO = "TODO"
-    REQUESTED_CREATED = "REQUESTED_CREATED"
-
+    REQUEST_CREATED = "REQUEST_CREATED"
 
 class Community(Model, Timestamp):
     __tablename__ = "community"
