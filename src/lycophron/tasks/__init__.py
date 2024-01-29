@@ -33,6 +33,7 @@ def init_celery_app():
     app.conf.task_ignore_result = False
     app.conf.result_backend = f"file://{str(_backend_folder)}"
     app.conf.max_memory_per_child = 100000
+    app.conf.update(imports=['lycophron.tasks.tasks'])
 
     return app
 
