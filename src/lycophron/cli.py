@@ -7,10 +7,13 @@
 """Lycophron cli tools."""
 from itertools import chain
 
-import click
 import csv
+import threading
+
+import click
 
 from lycophron.errors import InvalidDirectoryError
+
 from .app import LycophronApp
 
 
@@ -44,12 +47,12 @@ def init(pname=None, token=None):
 
 
 @lycophron.command()
-@click.option("--inputfile", required=True)
-def load(inputfile):
+@click.option("--file", required=True)
+def load(file):
     """Loads CSV into the local DB"""
     app = LycophronApp()
     try:
-        app.load_file(inputfile)
+        app.load_file(file)
         click.echo(click.style("Record loaded correctly.", fg="green"))
     except Exception as e:
         click.echo(click.style(e, fg="red"))
@@ -64,14 +67,15 @@ def export(outputfile):
 
 
 @lycophron.command()
-@click.option("-n", "--num_records", default=None)
-def publish(num_records):
+def start():
     """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
-    app = LycophronApp()
-    app.publish_records(num_records)
+
+    # app = LycophronApp()
+    # app.publish_records()
+    click.secho(f"Records queued for publishing.", fg="green")
     from .tasks import app as celery_app
 
-    argv = ["worker", "--loglevel=info"]
+    argv = ["worker", "--pool=threads", "--beat", "--loglevel=info"]
     celery_app.worker_main(argv)
 
 
@@ -96,7 +100,7 @@ def configure():
 )
 @click.option("--access", is_flag=True, help="Include all fields")
 @click.option(
-    "--filename",
+    "--file",
     type=click.File(mode="w", lazy=True),
     default="data.csv",
     help="Output CSV filename",
@@ -105,7 +109,7 @@ def configure():
 def new_template(
     custom,
     access,
-    filename,
+    file,
     all,
 ):
     """Creates a new CSV template."""
@@ -146,7 +150,7 @@ def new_template(
                 fields.extend(all_custom_fields.get(namespace, []))
 
     # Write the fields to the CSV file
-    csv_writer = csv.writer(filename)
+    csv_writer = csv.writer(file)
     csv_writer.writerow(fields)
 
 

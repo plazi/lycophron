@@ -112,8 +112,7 @@ class LycophronDB(object):
                 f"Record {record_rep} was rejected by database."
             )
         else:
-            repr = record.get("id", record["id"])
-            logger.info(f"Record {repr} was added.")
+            logger.info(f"Record was added.")
 
     def get_record(self, id):
         rec = self.session.query(Record).get(id)
@@ -126,7 +125,7 @@ class LycophronDB(object):
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record fetching.")
         query = self.session.query(Record).filter(
-            Record.status == RecordStatus.TODO # TODO Update this to fetch any state if not errored
+            Record.status != RecordStatus.PUBLISHED
         )
         if number:
             query = query.limit(number)

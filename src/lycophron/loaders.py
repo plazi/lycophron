@@ -6,12 +6,12 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron data loaders."""
 
-from abc import ABC, abstractmethod
 import csv
 import os
+from abc import ABC, abstractmethod
 
-from .serializers import SerializerFactory
 from .format import Format
+from .serializers import SerializerFactory
 
 
 class Loader(ABC):
