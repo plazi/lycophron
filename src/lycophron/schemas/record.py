@@ -41,13 +41,14 @@ class Metadata(Schema):
         output = {"related_identifiers": []}
 
         # Split the values by '\n' and process each
-        identifiers = original.get("related_identifiers.identifier", "").split("\n")
-        relation_types = original.get("related_identifiers.relation_type.id", "").split(
-            "\n"
-        )
-        resource_types = original.get("related_identifiers.resource_type.id", "").split(
-            "\n"
-        )
+        original_identifiers = original.get("related_identifiers.identifier", "")
+        identifiers = original_identifiers.split("\n") if original_identifiers else []
+
+        original_relation_types = original.get("related_identifiers.relation_type.id", "")
+        relation_types = original_relation_types.split("\n") if original_relation_types else []
+
+        original_resource_types = original.get("related_identifiers.resource_type.id", "")
+        resource_types = original_resource_types.split("\n") if original_resource_types else []
 
         # Determine the number of related identifiers
         num_identifiers = max(
@@ -389,7 +390,7 @@ class RecordRow(Schema):
                 key_of_prefix, []
             ):
                 prefix = f"{prefix}:{field}"
-                output[prefix] = value.split('\n')
+                output[prefix] = value.split("\n")
 
         # Remove empty dictionaries
         output = {k: v for k, v in output.items() if v}
@@ -411,11 +412,7 @@ class RecordRow(Schema):
         if access_files:
             output["access"]["files"] = access_files
 
-        if (
-            embargo_active
-            or embargo_until
-            or embargo_reason
-        ):
+        if embargo_active or embargo_until or embargo_reason:
             output["access"]["embargo"] = {
                 "active": embargo_active,
                 "until": embargo_until,
@@ -436,7 +433,6 @@ class RecordRow(Schema):
             {"input_metadata": {"metadata": metadata, **doi, **access, **custom_fields}}
         )
         return result
-
 
     def handle_error(self, error: ValidationError, data, **kwargs):
         dev_logger.error(error)
