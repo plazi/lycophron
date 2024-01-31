@@ -7,7 +7,8 @@
 """Lycophron data models."""
 
 import enum
-from sqlalchemy import Column, String, JSON, Enum, ForeignKey, Integer
+
+from sqlalchemy import JSON, Column, Enum, ForeignKey, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils.models import Timestamp

@@ -7,6 +7,7 @@
 """Lycophron data serializers."""
 
 from abc import ABC, abstractmethod
+
 from .format import Format
 
 

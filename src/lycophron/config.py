@@ -7,20 +7,21 @@
 """Lycophron config classes."""
 
 import logging
-import logging
 import os
 import types
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse
-from .errors import ConfigNotFound, ErrorHandler, InvalidConfig, ConfigError
+
+from .errors import ConfigNotFound, ErrorHandler, InvalidConfig
 
 logger = logging.getLogger("lycophron")
 
 
 class Defaults:
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
-    ZENODO_URL = "https://sandbox.zenodo.org/api"
+    ZENODO_URL = "https://127.0.0.1:5000/api"
     TOKEN = "CHANGEME"
+    RECORD_BATCH_SIZE = 10
 
     LYCOPHRON_FIELDS = ["id", "filenames"]
 
