@@ -68,7 +68,6 @@ class LycophronApp(object, metaclass=SingletonMeta):
     @cached_property
     def client(self):
         """Get the client."""
-        print(self.config)
         client = InvenioAPI(
             base_url=self.config["ZENODO_URL"], access_token=self.config["TOKEN"]
         )
@@ -139,5 +138,3 @@ class LycophronApp(object, metaclass=SingletonMeta):
             raise ValueError(
                 f"Invalid token or URL provided. Token: {config['TOKEN']}, URL: {config['ZENODO_URL']}"
             )
-
-app = LycophronApp()

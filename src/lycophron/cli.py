@@ -69,9 +69,6 @@ def export(outputfile):
 @lycophron.command()
 def start():
     """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
-
-    # app = LycophronApp()
-    # app.publish_records()
     click.secho(f"Records queued for publishing.", fg="green")
     from .tasks import app as celery_app
 

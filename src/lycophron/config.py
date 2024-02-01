@@ -21,7 +21,7 @@ class Defaults:
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
     ZENODO_URL = "https://127.0.0.1:5000/api"
     TOKEN = "CHANGEME"
-    RECORD_BATCH_SIZE = 10
+    # RECORD_BATCH_SIZE = 10
 
     LYCOPHRON_FIELDS = ["id", "filenames"]
 

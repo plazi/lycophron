@@ -23,7 +23,8 @@ from . import app
 def state_transition(frm, to):
     def update_state(event):
         def wrapper(client, obj, *args, **kwargs):
-            from lycophron.app import app as lapp
+            from lycophron.app import LycophronApp
+            lapp = LycophronApp()
             if obj.status != frm:
                 return
             event(client, obj, *args, **kwargs)
@@ -106,7 +107,8 @@ def add_to_community(client, record, published_record=None):
 
 @app.task
 def process_record(record_id):
-    from lycophron.app import app as lapp
+    from lycophron.app import LycophronApp
+    lapp = LycophronApp()
     db_record = lapp.project.db.get_record(record_id)
     client = lapp.client
     while True:
@@ -131,7 +133,8 @@ def process_record(record_id):
 
 @app.task
 def record_dispatcher(num_records=10):
-    from lycophron.app import app as lapp
+    from lycophron.app import LycophronApp
+    lapp = LycophronApp()
     db = lapp.project.db
     records = db.get_unpublished_deposits(num_records)
     for record in records:
