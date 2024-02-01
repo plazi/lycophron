@@ -8,6 +8,7 @@
 
 from datetime import datetime
 from time import sleep
+import traceback
 
 from inveniordm_py.files.metadata import FilesListMetadata, OutgoingStream
 from inveniordm_py.records.metadata import DraftMetadata
@@ -116,17 +117,15 @@ def process_record(record_id):
             publish_record(client, db_record, draft=draft)
             # add_to_community(client, db_record)
         except HTTPError as e:
-            ErrorHandler.handle_error(e)
             if e.response.status_code == 429:
                 sleep(60)
                 continue
             else:
-                ErrorHandler.handle_error(e)
-                db_record.response = e.__traceback__()
+                db_record.response = e.response.json()
                 lapp.project.db.session.commit()
         except Exception as e:
             ErrorHandler.handle_error(e)
-            db_record.response = e.__traceback__() # TODO Have a separate field error
+            db_record.error = "".join(traceback.format_tb(e.__traceback__))
             lapp.project.db.session.commit()
         break
 
@@ -139,8 +138,10 @@ def record_dispatcher(num_records=10):
         if record.status == RecordStatus.TODO:
             record.status = RecordStatus.QUEUED
             db.session.commit()
+        elif record.error:
+            continue # TODO Reporting error well (Awaiting fixes in client)
         elif record.response:
-            continue # TODO Manage 5xx
+            continue # TODO Manage 5xx/4xx
         elif (datetime.utcnow() - record.updated).seconds < 180:
             continue
 
