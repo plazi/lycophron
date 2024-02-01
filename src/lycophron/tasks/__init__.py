@@ -37,7 +37,7 @@ def init_celery_app():
     app.conf.beat_schedule = {
         'record-dispathcer': {
             'task': 'lycophron.tasks.tasks.record_dispatcher',
-            'schedule': 60.0,
+            'schedule': 120.0,
             'args': (20,)
         },
     }

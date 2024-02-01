@@ -30,7 +30,7 @@ class Record(Model, Timestamp):
 
     __tablename__ = "record"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(String, primary_key=True)
 
     upload_id = Column(String, default=None)
     # Already validated by marshmallow
@@ -45,6 +45,7 @@ class Record(Model, Timestamp):
     # State
     status = Column(Enum(RecordStatus), default=RecordStatus.TODO)
     response = Column(JSON, default=None)  # TODO response, errors
+    error = Column(String, default=None)
 
 class FileStatus(str, enum.Enum):
     TODO = "TODO"
