@@ -8,22 +8,16 @@ The tool supports the upload through CSV files that describe each record to be u
 
 1. Installation
 
-    Install from PyPi:
+    Install from GitHub using `pip`:
 
     ```bash
-    pip install --user lycophron 
+    pip install --user "lycophron @ git+https://github.com/plazi/lycophron@main"
     ```
 
-    Alternatively, use pipx:
+    Alternatively, use [pipx](https://pipx.pypa.io/):
 
     ```bash
-    pipx install lycophron 
-    ```
-
-    Or install directly from Github:
-
-    ```bash
-    pip install --user git+https://github.com/plazi/lycophron.git@v1.0.0 
+    pipx install "lycophron @ git+https://github.com/plazi/lycophron@main"
     ```
 
 2. Initalize a local project named "monkeys"
@@ -35,14 +29,15 @@ The tool supports the upload through CSV files that describe each record to be u
     List the project contents:
 
     ```bash
-    cd monkeys/  
-    
+    cd monkeys/
+
     tree
-    #|____lycophron.cfg
-    #|____lycophron.db
-    #|____files
-    #| |____Adam_Hubert_1976.pdf
-    #|____dev_logs.log
+    .
+    ├── lycophron.cfg
+    ├── lycophron.db
+    ├── files
+    │   └── Adam_Hubert_1976.pdf
+    └── dev_logs.log
     ```
 
     > You will be prompted to input the authentication token. You can leave it empty as this can be done afterward by directly editing the configuration file.
@@ -51,6 +46,7 @@ The tool supports the upload through CSV files that describe each record to be u
 
     ```bash
     cat lycophron.cfg
+
     # TOKEN = 'CHANGE_ME'
     # ZENODO_URL = 'https://zenodo.org/api'
     ```
@@ -63,7 +59,7 @@ The tool supports the upload through CSV files that describe each record to be u
     lycophron gen-template --filename output.csv --all
     ```
 
-    Add custom fields (e.g. `dwc` and `oc`) to the template:
+    Add custom fields (e.g. `dwc` and `ac`) to the template:
 
     ```bash
     lycophron gen-template --filename output.csv --custom "dwc,ac"
@@ -95,7 +91,16 @@ The tool supports the upload through CSV files that describe each record to be u
 
 **Requirements**
 
-- Python v3.9+
+- Python v3.11+
+
+Install from GitHub using `pip` or [`pipx`](https://pipx.pypa.io/):
+
+```bash
+pipx install "lycophron @ git+https://github.com/plazi/lycophron.git@v1.0.0
+```
+
+> [!NOTE]
+> In the future Lycophron will be published on PyPI and just require `pip install lycophron`.
 
 ### Linux/macOS
 
@@ -108,14 +113,12 @@ The tool supports the upload through CSV files that describe each record to be u
 > source lycophron/bin/activate
 > ```
 
-To install the CLI tool just run:
+To install the CLI tool for development, clone this repository and run:
 
 ```shell
-# For using the tool
-python -m pip install -r requirements.txt
-
 # For local development
-python -m pip install requirements-dev.txt
+uv pip sync requirements-dev.txt
+uv pip install -e .[dev]
 ```
 
 ## Commands
@@ -162,7 +165,7 @@ This command specifically targets records that are currently unpublished. Import
 | name       | description                                            |
 | ---------- | ------------------------------------------------------ |
 | TOKEN      | Token to authenticate with Zenodo                      |
-| ZENODO_URL | URL where to publish records (e.g. https://zenodo.org/api/deposit/depositions) | 
+| ZENODO_URL | URL where to publish records (e.g. https://zenodo.org/api/deposit/depositions) |
 
 ## Supported metadata
 
@@ -190,8 +193,8 @@ This command specifically targets records that are currently unpublished. Import
 - File names must match the files under the directory `/files/`
 
 > :warning:
-When working with fields defined as a list in the CSV file, it is essential to separate each item with a new line ("\n"). This ensures proper formatting and accurate representation of the list structure in the CSV file, thus allowing lycophron to parse the values correctly.
-  
+When working with fields defined as a list in the CSV file, it is essential to separate each item with a new line ("\n"). This ensures proper formatting and accurate representation of the list structure in the CSV file, thus allowing Lycophron to parse the values correctly.
+
 Example:
 
 |title                                                                                                                        |description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |access_right|upload_type|communities |publication_type|publication_date|journal_title       |journal_volume|journal_issue|journal_pages|doi                       |creators.name                                                 |creators.affiliation                                                                                                |creators.orcid|keywords|files                |id         |dwc:eventID|related_identifiers.identifier                 |related_identifiers.relation |
@@ -212,25 +215,18 @@ Example:
 
 ### Dependency management
 
-To manage Python dependencies, lycophron uses [`pip-tools`](https://github.com/jazzband/pip-tools).
+To manage Python dependencies, Lycophron uses [`uv`](https://github.com/astral-sh/uv).
 
 #### Generate dependency files
 
 > You should not need to do this. More often, you will want to just bump all dependencies to their latest versions. See [upgrading dependencies](#upgrade-all-dependencies)
 
-Two major files are used by `pip-tools`:
-
-- `requirements.in`, used for production
-- `requirements-dev.in`, used for development
-
-The files are generated from scratch like so:
-
 ```shell
 # Generate requirements.txt
-pip-compile requirements.in
+uv pip compile pyproject.toml > requirements.txt
 
 # Generate requirements-dev.txt
-pip-compile requirements-dev.in
+uv pip compile pyproject.toml --extra tests > requirements-dev.txt
 ```
 
 #### Add a new dependency
@@ -239,10 +235,10 @@ To add a new dependency, add it in the `dependencies` section of the `pyproject.
 
 ```shell
 # Update the requirements.txt file
-pip-compile requirements.in --upgrade-package <new-package>
+uv pip compile pyproject.toml --upgrade-package <new-package>
 
-# Update the requirements.dev.txt file
-pip-compile requirements-dev.in --upgrade-package <new-package>
+# Update the requirements-dev.txt file
+uv pip compile pyproject.toml --extra tests --upgrade-package <new-package>
 ```
 
 #### Upgrade all dependencies
@@ -250,12 +246,11 @@ pip-compile requirements-dev.in --upgrade-package <new-package>
 To upgrade all dependencies in development, run the following command in your terminal:
 
 ```shell
-pip-compile requirements-dev.in --upgrade
+uv pip compile pyproject.toml --extra tests --upgrade
 ```
 
 and for production:
 
 ```shell
-pip-compile --upgrade
-pip-compile requirements.in --upgrade
+uv pip compile pyproject.toml --upgrade
 ```
