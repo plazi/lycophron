@@ -1,4 +1,11 @@
-from idutils import is_orcid
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2023 CERN.
+#
+# Lycophron is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
+"""Record schema."""
+
 import logging
 
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load
@@ -44,11 +51,19 @@ class Metadata(Schema):
         original_identifiers = original.get("related_identifiers.identifier", "")
         identifiers = original_identifiers.split("\n") if original_identifiers else []
 
-        original_relation_types = original.get("related_identifiers.relation_type.id", "")
-        relation_types = original_relation_types.split("\n") if original_relation_types else []
+        original_relation_types = original.get(
+            "related_identifiers.relation_type.id", ""
+        )
+        relation_types = (
+            original_relation_types.split("\n") if original_relation_types else []
+        )
 
-        original_resource_types = original.get("related_identifiers.resource_type.id", "")
-        resource_types = original_resource_types.split("\n") if original_resource_types else []
+        original_resource_types = original.get(
+            "related_identifiers.resource_type.id", ""
+        )
+        resource_types = (
+            original_resource_types.split("\n") if original_resource_types else []
+        )
 
         # Determine the number of related identifiers
         num_identifiers = max(
@@ -278,24 +293,27 @@ class Metadata(Schema):
 
         # Validate and add the processed people to the output
         for person in cleaned_people:
+            affiliations = person.pop("affiliations", [])
             person_type = person.get("type")
             if person_type not in ["organizational", "personal"]:
                 raise ValidationError(
                     "Invalid type. Only 'organizational' and 'personal' are supported.",
                     creatibutor_type,
                 )
-            if person_type == "organizational" and not "name" in person:
+            if person_type == "organizational" and "name" not in person:
                 raise ValidationError(
                     "An organizational person must have 'name' filled in",
                     creatibutor_type,
                 )
-            elif person_type == "personal" and not "family_name" in person:
+            elif person_type == "personal" and "family_name" not in person:
                 raise ValidationError(
                     "A personal person must have 'family_name' filled in",
                     creatibutor_type,
                 )
 
-            output[creatibutor_type].append({"person_or_org": person})
+            output[creatibutor_type].append(
+                {"person_or_org": person, "affiliations": affiliations}
+            )
         return output
 
     @post_load(pass_original=True)
@@ -348,7 +366,8 @@ class RecordRow(Schema):
     def load_doi(self, original):
         doi_value = original.get("doi")
         if doi_value:
-            return dict(pids=dict(doi=dict(identifier=doi_value, provider="external")))
+            return {"pids": {"doi": {"identifier": doi_value, "provider": "external"}}}
+        return {"pids": {"doi": {"provider": "datacite", "client": "datacite"}}}
 
     def load_custom_fields(self, original):
         output = dict()
@@ -438,7 +457,3 @@ class RecordRow(Schema):
         dev_logger.error(error)
         record_id = data.get("doi", data.get("id"))
         raise RecordValidationError(f"'{record_id}' {error.messages}")
-
-
-# load -> deserialize
-# dump -> serialize
