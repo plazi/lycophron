@@ -5,14 +5,11 @@
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron cli tools."""
-from itertools import chain
 
+from itertools import chain
 import csv
-import threading
 
 import click
-
-from lycophron.errors import InvalidDirectoryError
 
 from .app import LycophronApp
 
@@ -35,7 +32,13 @@ def lycophron():
 
 @lycophron.command()
 @click.argument("pname", required=False)
-@click.option("--token", prompt="Zenodo token", default="", required=False)
+@click.password_option(
+    "--token",
+    prompt="Zenodo token",
+    default="",
+    confirmation_prompt=False,
+    required=False,
+)
 def init(pname=None, token=None):
     """Command to intialize the project"""
     _name = pname or ""
@@ -53,7 +56,7 @@ def load(file):
     app = LycophronApp()
     try:
         app.load_file(file)
-        click.echo(click.style("Record loaded correctly.", fg="green"))
+        click.echo(click.style("Records loaded correctly.", fg="green"))
     except Exception as e:
         click.echo(click.style(e, fg="red"))
 
@@ -69,7 +72,7 @@ def export(outputfile):
 @lycophron.command()
 def start():
     """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
-    click.secho(f"Records queued for publishing.", fg="green")
+    click.secho("Records queued for publishing.", fg="green")
     from .tasks import app as celery_app
 
     argv = ["worker", "--pool=threads", "--beat", "--loglevel=info"]
@@ -83,9 +86,22 @@ def update():
     pass
 
 
-@lycophron.command()
-def configure():
-    """Configures the application."""
+@lycophron.group()
+def config():
+    """Modify the application."""
+    pass
+
+
+@config.command()
+def show_config():
+    """Show the config."""
+    pass
+
+
+@config.command()
+@click.argument("name")
+def set_config(name):
+    """Set a config value."""
     pass
 
 

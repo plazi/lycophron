@@ -112,7 +112,7 @@ class LycophronDB(object):
                 f"Record {record_rep} was rejected by database."
             )
         else:
-            logger.info(f"Record was added.")
+            logger.info("Record was added.")
 
     def get_record(self, id):
         rec = self.session.query(Record).get(id)

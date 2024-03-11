@@ -1,5 +1,4 @@
 import csv
-import json
 
 
 def read_file():

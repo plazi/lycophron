@@ -9,7 +9,6 @@
 import os
 import shutil
 from functools import cached_property
-from urllib import parse as urlparse
 
 from inveniordm_py import InvenioAPI
 
@@ -127,7 +126,6 @@ class LycophronApp(object, metaclass=SingletonMeta):
 
     def load_file(self, filename):
         self.project.load_file(filename, self.config)
-
 
     # TODO not used by now, it can be added later as part of the client validation
     def _is_valid_token(self, config):

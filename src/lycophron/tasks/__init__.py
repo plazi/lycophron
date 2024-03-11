@@ -33,15 +33,15 @@ def init_celery_app():
     app.conf.task_ignore_result = False
     app.conf.result_backend = f"file://{str(_backend_folder)}"
     app.conf.max_memory_per_child = 100000
-    app.conf.update(imports=['lycophron.tasks.tasks'])
+    app.conf.update(imports=["lycophron.tasks.tasks"])
     app.conf.beat_schedule = {
-        'record-dispathcer': {
-            'task': 'lycophron.tasks.tasks.record_dispatcher',
-            'schedule': 120.0,
-            'args': (20,)
+        "record-dispathcer": {
+            "task": "lycophron.tasks.tasks.record_dispatcher",
+            "schedule": 120.0,
+            "args": (20,),
         },
     }
-    app.conf.timezone = 'UTC'
+    app.conf.timezone = "UTC"
 
     return app
 

@@ -80,7 +80,7 @@ class ErrorHandler(object):
     def handle_error(error):
         if not error:
             return
-        if type(error) == list:
+        if isinstance(error, list):
             for er in error:
                 ErrorHandler.log_error(er)
             raise error[0]
@@ -88,6 +88,7 @@ class ErrorHandler(object):
             ErrorHandler.log_error(error)
             raise error
 
+    @staticmethod
     def log_error(error):
         if isinstance(error, LycophronError):
             logger = logging.getLogger("lycophron")

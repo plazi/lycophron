@@ -14,7 +14,6 @@ from inveniordm_py.files.metadata import FilesListMetadata, OutgoingStream
 from inveniordm_py.records.metadata import DraftMetadata
 from requests.exceptions import HTTPError
 
-from ..db import LycophronDB
 from ..errors import ErrorHandler
 from ..models import FileStatus, RecordStatus
 from . import app
@@ -24,13 +23,16 @@ def state_transition(frm, to):
     def update_state(event):
         def wrapper(client, obj, *args, **kwargs):
             from lycophron.app import LycophronApp
+
             lapp = LycophronApp()
             if obj.status != frm:
                 return
             event(client, obj, *args, **kwargs)
             obj.status = to
             lapp.project.db.session.commit()
+
         return wrapper
+
     return update_state
 
 
@@ -108,6 +110,7 @@ def add_to_community(client, record, published_record=None):
 @app.task
 def process_record(record_id):
     from lycophron.app import LycophronApp
+
     lapp = LycophronApp()
     db_record = lapp.project.db.get_record(record_id)
     client = lapp.client
@@ -131,9 +134,11 @@ def process_record(record_id):
             lapp.project.db.session.commit()
         break
 
+
 @app.task
 def record_dispatcher(num_records=10):
     from lycophron.app import LycophronApp
+
     lapp = LycophronApp()
     db = lapp.project.db
     records = db.get_unpublished_deposits(num_records)
@@ -142,10 +147,10 @@ def record_dispatcher(num_records=10):
             record.status = RecordStatus.QUEUED
             db.session.commit()
         elif record.error:
-            continue # TODO Reporting error well (Awaiting fixes in client)
+            continue  # TODO Reporting error well (Awaiting fixes in client)
         elif record.response:
-            continue # TODO Manage 5xx/4xx
+            continue  # TODO Manage 5xx/4xx
         elif (datetime.utcnow() - record.updated).seconds < 180:
             continue
 
-        process_record.apply_async(args=[record.id])
+        process_record.delay(record.id)

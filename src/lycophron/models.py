@@ -15,6 +15,7 @@ from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
 
+
 class RecordStatus(str, enum.Enum):
     TODO = "TODO"
     QUEUED = "QUEUED"
@@ -24,6 +25,7 @@ class RecordStatus(str, enum.Enum):
     PUBLISHED = "PUBLISHED"
     FAILED = "FAILED"
     COMMUNITIES_ADDED = "COMMUNITIES_ADDED"
+
 
 class Record(Model, Timestamp):
     """Local representation of a record."""
@@ -47,9 +49,11 @@ class Record(Model, Timestamp):
     response = Column(JSON, default=None)  # TODO response, errors
     error = Column(String, default=None)
 
+
 class FileStatus(str, enum.Enum):
     TODO = "TODO"
     UPLOADED = "UPLOADED"
+
 
 class File(Model, Timestamp):
     __tablename__ = "file"
@@ -59,9 +63,11 @@ class File(Model, Timestamp):
     filename = Column(String)
     status = Column(Enum(FileStatus), default=FileStatus.TODO)
 
+
 class CommunityStatus(str, enum.Enum):
     TODO = "TODO"
     REQUEST_CREATED = "REQUEST_CREATED"
+
 
 class Community(Model, Timestamp):
     __tablename__ = "community"

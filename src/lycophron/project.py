@@ -5,13 +5,13 @@
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron project classes (business logic layer)."""
+
 from functools import cached_property
 
 from .db import LycophronDB
 from .errors import DatabaseAlreadyExists, ErrorHandler
 from .loaders import LoaderFactory
 from .schemas.record import RecordRow
-from .tasks.tasks import process_record
 
 
 class Project:
@@ -74,4 +74,3 @@ class Project:
     def recreate(self):
         """Recreate the project"""
         self.db.recreate_db()
-
