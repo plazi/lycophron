@@ -9,6 +9,7 @@
 import logging
 import os
 import types
+from pathlib import Path
 from abc import ABC, abstractmethod
 from urllib.parse import urlparse
 
@@ -268,7 +269,7 @@ class Config(dict):
             raise InvalidConfig(f"Invalid URL provided: {self['ZENODO_URL']}.")
 
     def update_config(self, value, persist=False):
-        if type(value) is not dict:
+        if not isinstance(value, dict):
             raise TypeError("Config must be a dictionary with pair key/value")
         super().update(value)
         if persist:
@@ -316,7 +317,7 @@ class CFGLoader(ConfigLoader):
         return f"{key.upper()} = '{val}'\n"
 
     def dump(self, dump_data) -> None:
-        if type(dump_data) is not dict:
+        if not isinstance(dump_data, dict):
             raise TypeError("Dump data must be a dictionary")
         with open(self.cfg_path, "w") as fp:
             for key, value in dump_data.items():
@@ -328,7 +329,7 @@ class CFGLoader(ConfigLoader):
         return key in file_contents.keys()
 
     def update(self, input_dict) -> bool:
-        if type(input_dict) is not dict:
+        if not isinstance(input_dict, dict):
             raise TypeError("Config must be a dictionary with pair key/value")
 
         if not self.exists():
@@ -350,7 +351,7 @@ class CFGLoader(ConfigLoader):
         if self.exists():
             return False
 
-        open(self.cfg_path, "w").close()
+        Path(self.cfg_path).touch(mode=0o600)
         return True
 
     def load(self) -> dict:
