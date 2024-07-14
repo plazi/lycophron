@@ -8,12 +8,10 @@ dependencies = [
     "click>=8.1.7",
     "marshmallow>=3.20.1",
     "idutils>=1.2.1",
-    # TODO: Start making releases of inveniordm-py and use a PyPI package here
-    "inveniordm-py @ git+https://github.com/inveniosoftware/inveniordm-py@master",
+    "inveniordm-py>=0.1.1",
     "celery>=5.3.4",
     "sqlalchemy>=2.0.22",
     "sqlalchemy-utils>=0.41.1",
-    "requests>=2.31.0",
 ]
 requires-python = ">=3.9"
 
