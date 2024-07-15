@@ -192,8 +192,11 @@ This command specifically targets records that are currently unpublished. Import
 - Generate the template by running `lycophron gen-template` and fill in the metadata.
 - File names must match the files under the directory `/files/`
 
-> :warning:
-When working with fields defined as a list in the CSV file, it is essential to separate each item with a new line ("\n"). This ensures proper formatting and accurate representation of the list structure in the CSV file, thus allowing Lycophron to parse the values correctly.
+> [!TIP]
+> We also provide [a sample generated sheet import template](https://docs.google.com/spreadsheets/d/1TUyDT6yOypX2DBuM_PNUZucFTC93uFlEa7PoAMYvnDI/edit?gid=54078251#gid=54078251) with some pre-filled values.
+
+> [!WARNING]
+> When working with fields defined as a list in the CSV file, it is essential to separate each item with a new line ("\n"). This ensures proper formatting and accurate representation of the list structure in the CSV file, thus allowing Lycophron to parse the values correctly.
 
 Example:
 
