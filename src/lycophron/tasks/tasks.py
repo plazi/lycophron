@@ -6,9 +6,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks implementation."""
 
+import traceback
 from datetime import datetime
 from time import sleep
-import traceback
 
 from inveniordm_py.files.metadata import FilesListMetadata, OutgoingStream
 from inveniordm_py.records.metadata import DraftMetadata

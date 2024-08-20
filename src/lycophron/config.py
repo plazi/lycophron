@@ -9,8 +9,8 @@
 import logging
 import os
 import types
-from pathlib import Path
 from abc import ABC, abstractmethod
+from pathlib import Path
 from urllib.parse import urlparse
 
 from .errors import ConfigNotFound, ErrorHandler, InvalidConfig
