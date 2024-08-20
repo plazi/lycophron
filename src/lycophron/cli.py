@@ -6,8 +6,8 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron cli tools."""
 
-from itertools import chain
 import csv
+from itertools import chain
 
 import click
 

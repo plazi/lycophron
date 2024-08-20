@@ -15,7 +15,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy_utils.functions import create_database, database_exists, drop_database
 
 from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
-from .models import Model, Record, RecordStatus, Community, File
+from .models import Community, File, Model, Record, RecordStatus
 
 logger = logging.getLogger("lycophron")
 dev_logger = logging.getLogger("lycophron_dev")
