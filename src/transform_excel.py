@@ -63,8 +63,6 @@ def serialize_record(record):
         orcids = ""
         for creator in creators_list:
             name = creator[0].replace("\n", ", ")
-            if "\n" in creator[0]:
-                breakpoint()
             if not name:
                 continue
             affiliation = creator[1].replace("\n", ", ")
@@ -74,7 +72,6 @@ def serialize_record(record):
             names += f"{name}\n"
             affiliations += f"{affiliation}\n"
             orcids += f"{orcid}\n"
-        breakpoint()
         return names, affiliations, orcids
 
     def _get_creators_list(data):
