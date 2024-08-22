@@ -15,7 +15,6 @@ from inveniordm_py import InvenioAPI
 from .client import create_session
 from .config import Config
 from .errors import InvalidDirectoryError
-from .logger import init_logging
 from .project import Project
 
 
@@ -79,10 +78,10 @@ class LycophronApp(object, metaclass=SingletonMeta):
 
     def init(self):
         """Initialize the app.
+
         This method is responsible for creating the project directory, the config, database and logger files.
         """
         self._create_directory()
-        self._init_logging()
         self._init_config()
         self._init_project()
 
@@ -108,10 +107,6 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def _init_project(self):
         """Initialize the project."""
         self.project.initialize()
-
-    def _init_logging(self):
-        """Initialize logging."""
-        init_logging(self.root_path)
 
     def recreate(self):
         self.config.recreate()

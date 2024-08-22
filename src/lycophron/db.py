@@ -18,7 +18,6 @@ from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNot
 from .models import Community, File, Model, Record, RecordStatus
 
 logger = logging.getLogger("lycophron")
-dev_logger = logging.getLogger("lycophron_dev")
 
 
 def custom_serializer(o):
@@ -77,11 +76,12 @@ class LycophronDB(object):
         return database_exists(self.engine.url)
 
     def add_record(self, record: dict) -> None:
-        """Adds a record to the DB.
+        """Add a record to the DB.
 
         :param record: deserialized record
         :type record: dict
         """
+        logger.debug(f"Adding record {record.get('id')}")
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record add.")
 
@@ -102,24 +102,36 @@ class LycophronDB(object):
             file = File(filename=file)
             new_record.files.append(file)
         self.session.add(new_record)
+        repr = record.get("id") or record.get("title")
         try:
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            dev_logger.error(e)
-            record_rep = record.get("doi") or record.get("title")
             raise DatabaseResourceNotModified(
-                f"Record {record_rep} was rejected by database."
+                f"Record {repr} was rejected by database."
             )
         else:
-            logger.info("Record was added.")
+            logger.info(f"Record {repr} added.")
 
     def get_record(self, id):
         rec = self.session.query(Record).get(id)
         return rec
 
-    def update_record(self, record):
+    def update_record(self, record: Record, data: dict):
+        logger.debug(f"Updating record {record.id}")
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found. Aborting record update.")
+
+        if record.failed or record.published:
+            raise DatabaseResourceNotModified(
+                f"Record {record.id} is already published or failed."
+            )
+
+        input_metadata = data["input_metadata"]
+        record.input_metadata = input_metadata
+        record.status = RecordStatus.TODO
         self.session.commit()
+        return record
 
     def get_unpublished_deposits(self, number):
         if not self.database_exists():
@@ -131,3 +143,28 @@ class LycophronDB(object):
             query = query.limit(number)
         records = query.all()
         return records
+
+    def _record_to_dict(self, record, columns):
+        return {c.key: getattr(record, c.key) for c in columns}
+
+    def export(self, fields=None):
+        """Export DB contents.
+
+        Example:
+        -------
+        .. code-block:: python
+
+                db.export(fields=[Record.upload_id, Record.input_metadata])
+                # [{'upload_id': '123', 'input_metadata': {'title': 'test'}}]
+
+        """
+        if not fields:
+            fields = [Record.upload_id, Record.input_metadata]
+        q_res = self.session.query(*fields).all()
+        res = []
+        for record in q_res:
+            res.append(self._record_to_dict(record, fields))
+        return res
+
+
+# TODO FILE_FAILED: imagine I fix the file name, then how do I retrigger?

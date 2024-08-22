@@ -17,14 +17,25 @@ Model = declarative_base()
 
 
 class RecordStatus(str, enum.Enum):
-    TODO = "TODO"
+    TODO = "NEW"
     QUEUED = "QUEUED"
     DRAFT_CREATED = "DRAFT_CREATED"
     METADATA_UPDATED = "METADATA_UPDATED"
     FILE_UPLOADED = "FILE_UPLOADED"
     PUBLISHED = "PUBLISHED"
-    FAILED = "FAILED"
+
+    # Failure states
+    DRAFT_FAILED = "DRAFT_FAILED"
+    METADATA_FAILED = "METADATA_FAILED"
+    FILE_FAILED = "FILE_FAILED"
+    PUBLISH_FAILED = "PUBLISH_FAILED"
+
+    # Community states
+    COMMUNITIES_FAILED = "COMMUNITY_FAILED"
     COMMUNITIES_ADDED = "COMMUNITIES_ADDED"
+
+    def __repr__(self) -> str:
+        return self.value
 
 
 class Record(Model, Timestamp):
@@ -49,10 +60,27 @@ class Record(Model, Timestamp):
     response = Column(JSON, default=None)  # TODO response, errors
     error = Column(String, default=None)
 
+    @property
+    def failed(self):
+        """Check if the record is in a failed state."""
+        return self.status in [
+            RecordStatus.DRAFT_FAILED,
+            RecordStatus.METADATA_FAILED,
+            RecordStatus.FILE_FAILED,
+            RecordStatus.PUBLISH_FAILED,
+            RecordStatus.COMMUNITIES_FAILED,
+        ]
+    
+    @property
+    def published(self):
+        """Check if the record is in a published state."""
+        return self.status == RecordStatus.PUBLISHED
+
 
 class FileStatus(str, enum.Enum):
     TODO = "TODO"
     UPLOADED = "UPLOADED"
+    FAILED = "FAILED"
 
 
 class File(Model, Timestamp):

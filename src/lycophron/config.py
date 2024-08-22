@@ -6,21 +6,21 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron config classes."""
 
-import logging
 import os
 import types
 from abc import ABC, abstractmethod
 from pathlib import Path
 from urllib.parse import urlparse
 
-from .errors import ConfigNotFound, ErrorHandler, InvalidConfig
-
-logger = logging.getLogger("lycophron")
+from .errors import ConfigNotFound, InvalidConfig
+from .logger import logger
 
 
 class Defaults:
     SQLALCHEMY_DATABASE_URI = "sqlite:///lycophron.db"
     ZENODO_URL = "https://127.0.0.1:5000/api"
+    # API url for Zenodo, default is the local Zenodo instance
+
     TOKEN = "CHANGEME"
     # RECORD_BATCH_SIZE = 10
 
@@ -205,6 +205,9 @@ class Defaults:
         "obo": ["RO_0002453"],
     }
 
+    RETRY_IGNORE_TIME = 3600 * 24
+    # Maximum time, in seconds, for a record to be processed before being ignored
+
 
 required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
 
@@ -254,13 +257,9 @@ class Config(dict):
 
     def _all_configs_required_set(self):
         """Check if all required configs are set."""
-        errors = []
         for conf in required_configs:
             if not self.get(conf):
-                errors.append(ConfigNotFound(conf))
-        if errors:
-            ErrorHandler.handle_error(errors)
-            raise errors[0]
+                raise ConfigNotFound(conf)
 
     def _is_zendodo_url_valid(self):
         """Check if the URL is valid."""

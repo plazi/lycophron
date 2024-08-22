@@ -8,10 +8,14 @@
 
 import csv
 from itertools import chain
+from pathlib import Path
 
 import click
 
 from .app import LycophronApp
+from .logger import logger
+
+INFO_COLOR = "cyan"
 
 
 def _generate_base_fields(prefix, fields):
@@ -40,39 +44,71 @@ def lycophron():
     required=False,
 )
 def init(pname=None, token=None):
-    """Command to intialize the project"""
-    _name = pname or ""
-    app = LycophronApp(name=_name)
-    app.init()
-    if token:
-        app.config.update_config({"token": token}, persist=True)
+    """Intialize the project."""
+    try:
+        _name = pname or ""
+        app = LycophronApp(name=_name)
+        app.init()
+        if token:
+            app.config.update_config({"token": token}, persist=True)
+    except Exception:
+        click.secho("Error initializing project.", fg="red")
+        return
+
     click.secho(f"Project initialized in directory {app.root_path}.", fg="green")
 
 
 @lycophron.command()
 @click.option("--file", required=True)
 def load(file):
-    """Loads CSV into the local DB"""
+    """Load CSV into the local DB."""
     app = LycophronApp()
+    logger.debug(f"Loading file {file}")
     try:
         app.load_file(file)
-        click.echo(click.style("Records loaded correctly.", fg="green"))
+        click.echo(
+            click.style(
+                "Loading finished. See messages above for results.", fg=INFO_COLOR
+            )
+        )
     except Exception as e:
         click.echo(click.style(e, fg="red"))
+    logger.debug(f"File {file} finished loading.")
 
 
 @lycophron.command()
-@click.option("--outputfile", required=True)
-def export(outputfile):
-    """Exports all records from the DB to a CSV format"""
-    # TODO
-    pass
+@click.option(
+    "--file",
+    type=click.File(mode="w", lazy=True),
+    default="export.csv",
+    help="Export CSV filename",
+)
+@click.option("--all", is_flag=True, help="Include all fields", default=False)
+def export(file, all):
+    """Export all records from the DB to a CSV format."""
+    app = LycophronApp()
+    logger.debug("Exporting data.")
+    try:
+        export = app.project.export(app.config, full=all)
+    except NotImplementedError:
+        click.echo(
+            click.style(
+                "Flag --all is not supported yet. Only basic fields will be exported.",
+                fg="yellow",
+            )
+        )
+        export = app.project.export(app.config, full=False)
+    click.echo(export)
+    file.write(export)
+    file.close()
+    logger.debug("Finished exporting data.")
+    click.echo(click.style(f"Exported data to {file.name}.", fg=INFO_COLOR))
 
 
 @lycophron.command()
 def start():
     """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
-    click.secho("Records queued for publishing.", fg="green")
+    click.secho("Records queued for publishing.", fg=INFO_COLOR)
     from .tasks import app as celery_app
 
     argv = ["worker", "--pool=threads", "--beat", "--loglevel=info"]
@@ -80,10 +116,12 @@ def start():
 
 
 @lycophron.command()
-def update():
-    """Edits and updates records on Zenodo"""
-    # TODO
-    pass
+@click.option("--file", required=True)
+@click.pass_context
+def update(ctx, file):
+    """Update record locally."""
+    ctx.forward(load)
+    ctx.invoke(load, file=file)
 
 
 @lycophron.group()
@@ -170,10 +208,14 @@ def new_template(
 @lycophron.command()
 @click.option("--file", prompt="CSV File", type=click.Path(exists=True))
 def validate(file):
-    """Validates the config and headers of a CSV file."""
-    app = LycophronApp()
-    app.validate()
-    click.secho("App validation passed.", fg="green")
+    """Validate the config and headers of a CSV file."""
+    try:
+        app = LycophronApp()
+        app.validate()
+    except Exception as e:
+        click.secho(f"App validation failed: {e}", fg="red")
+        return
+    click.secho("App is valid.", fg="green")
 
     # Validates headers
     with open(file, "r", newline="", encoding="utf-8") as csvfile:
@@ -212,6 +254,13 @@ def validate(file):
         click.secho("CSV header validation failed. Invalid headers found:", fg="red")
         for header in invalid_headers:
             click.secho(f"- {header}", fg="red")
+
+    try:
+        app.project.validate(file, app.config, Path(app.root_path) / "files")
+    except Exception as e:
+        click.secho(f"Data validation failed: {e}", fg="red")
+        return
+    click.secho("Data and files validation passed.", fg="green")
 
 
 if __name__ == "__main__":
