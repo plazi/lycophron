@@ -6,13 +6,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Record schema."""
 
-import logging
-
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load
 
-from ..errors import RecordValidationError
-
-dev_logger = logging.getLogger("lycophron_dev")
+from ..logger import logger
 
 
 def clean_empty(data):
@@ -251,13 +247,11 @@ class Metadata(Schema):
             for key, value in original.items()
             if key.startswith(f"{creatibutor_type}.")
         }
-
         # Determine the number of people
         num_people = max(len(value.split("\n")) for value in people_input.values())
 
         # Initialize a list of dictionaries for each person
         people = [{} for _ in range(num_people)]
-
         for key, value in people_input.items():
             parts = key.split(".")
             values = value.split("\n")
@@ -296,6 +290,7 @@ class Metadata(Schema):
             affiliations = person.pop("affiliations", [])
             person_type = person.get("type")
             if person_type not in ["organizational", "personal"]:
+                logger.debug(f"{original['id']} invalid type: {person_type}")
                 raise ValidationError(
                     "Invalid type. Only 'organizational' and 'personal' are supported.",
                     creatibutor_type,
@@ -344,10 +339,6 @@ class Metadata(Schema):
 
         return result
 
-    def load_keywords(self, value):
-        split = value.splitlines()
-        return [v.strip() for v in split]
-
     @post_load
     def clean(self, value, **kwargs):
         output = clean_empty(value)
@@ -367,7 +358,7 @@ class RecordRow(Schema):
         doi_value = original.get("doi")
         if doi_value:
             return {"pids": {"doi": {"identifier": doi_value, "provider": "external"}}}
-        return {"pids": {"doi": {"provider": "datacite", "client": "datacite"}}}
+        return {}
 
     def load_custom_fields(self, original):
         output = dict()
@@ -452,8 +443,3 @@ class RecordRow(Schema):
             {"input_metadata": {"metadata": metadata, **doi, **access, **custom_fields}}
         )
         return result
-
-    def handle_error(self, error: ValidationError, data, **kwargs):
-        dev_logger.error(error)
-        record_id = data.get("doi", data.get("id"))
-        raise RecordValidationError(f"'{record_id}' {error.messages}")

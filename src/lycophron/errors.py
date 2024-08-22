@@ -6,8 +6,6 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Defines lycophron errors and handler."""
 
-import logging
-
 from marshmallow import ValidationError
 
 
@@ -73,34 +71,3 @@ class RecordValidationError(RecordError, ValidationError):
 class InvalidRecordData(RecordError):
     error_type = "DATA"
     hint = "Check the data for, e.g. missing required fields like 'id', 'doi'."
-
-
-class ErrorHandler(object):
-    @staticmethod
-    def handle_error(error):
-        if not error:
-            return
-        if isinstance(error, list):
-            for er in error:
-                ErrorHandler.log_error(er)
-            raise error[0]
-        if isinstance(error, Exception):
-            ErrorHandler.log_error(error)
-            raise error
-
-    @staticmethod
-    def log_error(error):
-        if isinstance(error, LycophronError):
-            logger = logging.getLogger("lycophron")
-        else:
-            logger = logging.getLogger("lycophron_dev")
-        logger.error(serialize(error))
-
-
-def serialize(error: Exception) -> str:
-    msg = error.__repr__()
-    er_type = getattr(error, "error_type", "")
-    msg = f"[{er_type}] {msg}"
-    if hasattr(error, "hint"):
-        msg = f"{msg}\nHint: {getattr(error, 'hint')}"
-    return msg

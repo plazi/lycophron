@@ -6,31 +6,36 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron logger class."""
 
-# TODO logging is currently implemented without using a class-based approach.
-
 import logging
 import os
 import sys
 
+import colorlog
 
-def init_logging(root_path=os.getcwd()):
-    """Initialises logging in two steps:
-    1 - adds a "user-friendly" logger that prints errors to stdout.
-    2 - adds a "dev-only" logger tha prints errors to a file.
-    """
-    logger = logging.getLogger("lycophron")
-    dev_logger = logging.getLogger("lycophron_dev")
+logger = logging.getLogger("lycophron")
+logger.setLevel(logging.DEBUG)  # Set the logger to handle all levels of logging
 
-    formatter = logging.Formatter("%(asctime)s : %(message)s")
-    dev_formatter = logging.Formatter("%(asctime)s : %(message)s\n")
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.INFO)
+stdout_formatter = colorlog.ColoredFormatter(
+    "%(log_color)s%(asctime)s : %(message)s",
+    log_colors={
+        "DEBUG": "white",
+        "INFO": "cyan",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "bold_red",
+    },
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+stdout_handler.setFormatter(stdout_formatter)
 
-    stdout_handler = logging.StreamHandler(sys.stdout)
-    stdout_handler.setLevel(logging.INFO)
-    stdout_handler.setFormatter(formatter)
+file_handler = logging.FileHandler(f"{os.getcwd()}/dev_logs.log")
+file_handler.setLevel(logging.DEBUG)
+file_formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s : %(message)s\n", "%Y-%m-%d %H:%M:%S"
+)
+file_handler.setFormatter(file_formatter)
 
-    dev_file_handler = logging.FileHandler(f"{root_path}/dev_logs.log")
-    dev_file_handler.setLevel(logging.ERROR)
-    dev_file_handler.setFormatter(dev_formatter)
-
-    logger.addHandler(stdout_handler)
-    dev_logger.addHandler(dev_file_handler)
+logger.addHandler(stdout_handler)
+logger.addHandler(file_handler)

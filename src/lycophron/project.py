@@ -6,17 +6,23 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron project classes (business logic layer)."""
 
+import os
 from functools import cached_property
+from pathlib import Path
+
+from click import File
 
 from .db import LycophronDB
-from .errors import DatabaseAlreadyExists, ErrorHandler
+from .errors import RecordValidationError
 from .loaders import LoaderFactory
+from .logger import logger
+from .models import Record, RecordStatus
 from .schemas.record import RecordRow
+from .serializers import CSVSerializer
 
 
 class Project:
     def __init__(self, db_uri):
-        self.errors = []
         self._db_uri = db_uri
 
     @cached_property
@@ -39,9 +45,10 @@ class Project:
     def load_file(self, filename, config):
         data = self.process_file(filename, config)
         for record in data:
-            self.add_record(record)
-        if len(self.errors):
-            ErrorHandler.handle_error(self.errors)
+            try:
+                self.add_or_update_record(record)
+            except Exception as e:
+                logger.error(f"Error adding record: {e}")
 
     def process_file(self, filename, config):
         factory = LoaderFactory()
@@ -52,25 +59,86 @@ class Project:
             try:
                 record = row_schema.load(data)
             except Exception as e:
-                self.errors.append(e)
+                logger.error(e)
             else:
                 records.append(record)
         return records
 
-    def add_record(self, record):
-        # TODO record data integrity is missin validation
-        try:
+    def add_or_update_record(self, record):
+        db_record = self.db.get_record(record["id"])
+        if not db_record:
             self.db.add_record(record)
-        except Exception as e:
-            self.errors.append(e)
+        else:
+            self.db.update_record(db_record, record)
 
     def initialize(self):
-        """Initialize the project"""
-        try:
-            self.db.init_db()
-        except DatabaseAlreadyExists as e:
-            ErrorHandler.handle_error(e)
+        """Initialize the project."""
+        self.db.init_db()
 
     def recreate(self):
-        """Recreate the project"""
+        """Recreate the project."""
         self.db.recreate_db()
+
+    def _file_exists(self, filename):
+        """Check if the file exists."""
+        return os.path.exists(filename)
+
+    def validate(self, filename=None, config=None, directory=None):
+        """Validate the project."""
+        if not (filename and config and directory):
+            return True
+        factory = LoaderFactory()
+        loader = factory.create_loader(filename)
+        row_schema = RecordRow(context=config)
+        for data in loader.load(filename):
+            try:
+                record = row_schema.load(data)
+            except Exception as e:
+                raise RecordValidationError(str(e))
+            fnames = record["files"]
+            logger.debug(f"Validating files: {fnames}")
+            for fname in fnames:
+                if not self._file_exists(Path(directory) / fname):
+                    raise FileNotFoundError(f"File {fname} not found in {directory}.")
+
+        return True
+
+    def export(self, config, serializer=CSVSerializer, full=False):
+        """Export the records to a file."""
+        if full:
+            raise NotImplementedError("Full export is not implemented yet.")
+        res = []
+        BASE_URL = config["ZENODO_URL"].rstrip("/")
+        records = self.db.export(
+            fields=[
+                Record.id,
+                Record.upload_id,
+                Record.input_metadata,
+                Record.status,
+                Record.remote_metadata,
+                Record.response,
+                Record.error,
+            ]
+        )
+        logger.debug(f"Exporting {len(records)} records.")
+        for record in records:
+            metadata = record["input_metadata"]["metadata"]
+            response = record["response"]
+            if record["status"] == RecordStatus.PUBLISHED:
+                zenodo_url = f"{BASE_URL}/records/{record['upload_id']}"
+            elif record["upload_id"]:
+                zenodo_url = f"{BASE_URL}/records/{record['upload_id']}/draft"
+            else:
+                zenodo_url = ""
+            _r = {
+                "id": record["id"],
+                "title": metadata.get("title"),
+                "doi": metadata.get("doi"),
+                "zenodo_url": zenodo_url,
+                "status": record["status"],
+                "zenodo_error": "",
+            }
+            if isinstance(response, dict) and response.get("status") == 400:
+                _r["zenodo_error"] = response.get("message")
+            res.append(_r)
+        return serializer().serialize(res)
