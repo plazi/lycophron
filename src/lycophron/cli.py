@@ -271,5 +271,23 @@ def validate(file):
     click.secho("Data and files validation passed.", fg="green")
 
 
+@lycophron.command()
+def recreate():
+    """Recreate the project."""
+    try:
+        app = LycophronApp()
+        # Are you sure?
+        click.confirm(
+            "Are you sure you want to recreate the project? This will delete all records and files.",
+            abort=True,
+        )
+        app.recreate()
+        click.secho("Project recreated.", fg=INFO_COLOR)
+    except click.Abort:
+        click.secho("Recreation aborted.", fg=INFO_COLOR)
+    except Exception as e:
+        click.secho(f"Error recreating project: {e}", fg="red")
+
+
 if __name__ == "__main__":
     lycophron()
