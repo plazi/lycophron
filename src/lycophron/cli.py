@@ -149,23 +149,26 @@ def set_config(name):
     type=str,
     help="Custom field namespaces separated by commas (e.g., dwc,ac,obo)",
 )
-@click.option("--access", is_flag=True, help="Include all fields")
+@click.option("--access", is_flag=True, help="Include access fields")
 @click.option(
     "--file",
     type=click.File(mode="w", lazy=True),
     default="data.csv",
     help="Output CSV filename",
 )
-@click.option("--all", is_flag=True, help="Include all fields")
-def new_template(
-    custom,
-    access,
-    file,
-    all,
-):
-    """Creates a new CSV template."""
+@click.option("--all", is_flag=True, help="Include all fields.")
+@click.option("--minimal", is_flag=True, default=False, help="Include minimal fields")
+def new_template(custom, access, file, all, minimal):
+    """Creates a new CSV template.
+
+    By default, the template includes the minimal required fields and a small subset of RDM fields.
+    """  # noqa: D401
     # Consolidate all fields
     app = LycophronApp()
+
+    if all and minimal:
+        click.secho("Cannot use both --all and --minimal flags.", fg="red")
+        return
 
     all_base_custom_fields = {
         key: _generate_base_fields(
@@ -183,16 +186,20 @@ def new_template(
     all_custom_fields = {**all_base_custom_fields, **all_additional_custom_fields}
 
     # Initialize the list of fields with base lycophron and RDM fields
-    fields = app.config["LYCOPHRON_FIELDS"].copy() + app.config["RDM_FIELDS"].copy()
+    fields = app.config["LYCOPHRON_FIELDS"].copy()
     # Add conditional fields if enabled to headers
     if all:
+        fields.extend(app.config["RDM_FIELDS"].copy())
         fields.extend(app.config["ACCESS_FIELDS"].copy())
         for namespace in chain(
             app.config["BASE_CUSTOM_FIELD_DEFINITIONS"].keys(),
             app.config["ADDITIONAL_CUSTOM_FIELD_DEFINITIONS"].keys(),
         ):
             fields.extend(all_custom_fields.get(namespace, []))
+    elif minimal:
+        fields.extend(app.config["REQUIRED_FIELDS"].copy())
     else:
+        fields.extend(app.config["RDM_FIELDS"].copy())
         if access:
             fields.extend(app.config["ACCESS_FIELDS"].copy())
         if custom:
@@ -202,7 +209,8 @@ def new_template(
 
     # Write the fields to the CSV file
     csv_writer = csv.writer(file)
-    csv_writer.writerow(fields)
+    # Dump fields, removing duplicates
+    csv_writer.writerow(list(dict.fromkeys(fields)))
 
 
 @lycophron.command()

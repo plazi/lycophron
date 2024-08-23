@@ -26,6 +26,17 @@ class Defaults:
 
     LYCOPHRON_FIELDS = ["id", "filenames"]
 
+    REQUIRED_FIELDS = [
+        "title",
+        "publication_date",
+        "id",
+        "filenames",
+        "resource_type.id",
+        "creators.type",
+        "creators.given_name",
+        "creators.family_name",
+    ]
+
     # Base RDM fields
     RDM_FIELDS = [
         "resource_type.id",
