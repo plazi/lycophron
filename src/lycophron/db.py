@@ -120,8 +120,6 @@ class LycophronDB(object):
             raise DatabaseResourceNotModified(
                 f"Record {repr} was rejected by database."
             )
-        else:
-            logger.info(f"Record {repr} added.")
 
     def get_record(self, id):
         rec = self.session.query(Record).get(id)
@@ -134,7 +132,7 @@ class LycophronDB(object):
 
         if record.published:
             raise DatabaseResourceNotModified(
-                f"Record {record.id} is already published or failed."
+                f"Record {record.id} is already published, can't be updated."
             )
 
         input_metadata = data["input_metadata"]

@@ -6,6 +6,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Record schema."""
 
+from copy import deepcopy
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load
 
 from ..logger import logger
@@ -339,10 +340,10 @@ class Metadata(Schema):
 
         return result
 
-    # @post_load
-    # def clean(self, value, **kwargs):
-    #     output = clean_empty(value)
-    #     return output
+    @post_load
+    def clean(self, value, **kwargs):
+        output = clean_empty(value)
+        return output
 
 
 class RecordRow(Schema):
@@ -372,6 +373,8 @@ class RecordRow(Schema):
             if len(split_key) != 2:
                 ValidationError("")
                 continue  # Skip keys that do not match the expected format
+            if not value:
+                continue
 
             prefix, field = split_key
             field_prefixes = {

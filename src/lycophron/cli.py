@@ -31,7 +31,7 @@ def _generate_additional_fields(prefix, fields):
 @click.group()
 @click.version_option()
 def lycophron():
-    """Initialize a cli group."""
+    """Lycophron is a tool to batch upload records to Zenodo using a CSV file."""
 
 
 @lycophron.command()

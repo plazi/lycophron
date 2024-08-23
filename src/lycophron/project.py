@@ -11,7 +11,7 @@ from functools import cached_property
 from pathlib import Path
 
 from .db import LycophronDB
-from .errors import RecordValidationError
+from .errors import DatabaseError, RecordValidationError
 from .loaders import LoaderFactory
 from .logger import logger
 from .models import Record, RecordStatus
@@ -45,8 +45,12 @@ class Project:
         for record in data:
             try:
                 self.add_or_update_record(record)
+            except DatabaseError as e:
+                logger.warn(e)
             except Exception as e:
-                logger.error(f"Error adding record: {e}")
+                logger.error(e)
+            else:
+                logger.info(f"Record {record['id']} added/updated successfully.")
 
     def process_file(self, filename, config):
         factory = LoaderFactory()
