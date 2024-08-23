@@ -8,12 +8,20 @@
 
 import enum
 
-from sqlalchemy import JSON, Column, Enum, ForeignKey, Integer, String
+from sqlalchemy import JSON, Column, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
+
+
+class classproperty:
+    def __init__(self, func):
+        self.fget = func
+
+    def __get__(self, instance, owner):
+        return self.fget(owner)
 
 
 class RecordStatus(str, enum.Enum):
@@ -36,6 +44,17 @@ class RecordStatus(str, enum.Enum):
 
     def __repr__(self) -> str:
         return self.value
+
+    @classproperty
+    def failed_statuses(self):
+        """Set of failed statuses."""
+        return {
+            RecordStatus.DRAFT_FAILED,
+            RecordStatus.METADATA_FAILED,
+            RecordStatus.FILE_FAILED,
+            RecordStatus.PUBLISH_FAILED,
+            RecordStatus.COMMUNITIES_FAILED,
+        }
 
 
 class Record(Model, Timestamp):
@@ -70,7 +89,7 @@ class Record(Model, Timestamp):
             RecordStatus.PUBLISH_FAILED,
             RecordStatus.COMMUNITIES_FAILED,
         ]
-    
+
     @property
     def published(self):
         """Check if the record is in a published state."""
@@ -90,6 +109,9 @@ class File(Model, Timestamp):
     record_id = Column(String, ForeignKey("record.id"))
     filename = Column(String)
     status = Column(Enum(FileStatus), default=FileStatus.TODO)
+    checksum = Column(String)
+
+    UniqueConstraint(record_id, filename, name="unique_file_per_record")
 
 
 class CommunityStatus(str, enum.Enum):

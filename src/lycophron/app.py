@@ -109,7 +109,6 @@ class LycophronApp(object, metaclass=SingletonMeta):
         self.project.initialize()
 
     def recreate(self):
-        self.config.recreate()
         self.project.recreate()
         self._remove_directory()
         self._create_directory()

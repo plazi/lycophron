@@ -10,8 +10,6 @@ import os
 from functools import cached_property
 from pathlib import Path
 
-from click import File
-
 from .db import LycophronDB
 from .errors import RecordValidationError
 from .loaders import LoaderFactory
@@ -94,6 +92,7 @@ class Project:
             try:
                 record = row_schema.load(data)
             except Exception as e:
+                logger.debug(f"Record {data} validation failed.")
                 raise RecordValidationError(str(e))
             fnames = record["files"]
             logger.debug(f"Validating files: {fnames}")
@@ -108,7 +107,7 @@ class Project:
         if full:
             raise NotImplementedError("Full export is not implemented yet.")
         res = []
-        BASE_URL = config["ZENODO_URL"].rstrip("/")
+        BASE_URL = config["ZENODO_URL"].replace("/api", "").rstrip("/")
         records = self.db.export(
             fields=[
                 Record.id,
@@ -127,7 +126,7 @@ class Project:
             if record["status"] == RecordStatus.PUBLISHED:
                 zenodo_url = f"{BASE_URL}/records/{record['upload_id']}"
             elif record["upload_id"]:
-                zenodo_url = f"{BASE_URL}/records/{record['upload_id']}/draft"
+                zenodo_url = f"{BASE_URL}/uploads/{record['upload_id']}"
             else:
                 zenodo_url = ""
             _r = {
@@ -139,6 +138,15 @@ class Project:
                 "zenodo_error": "",
             }
             if isinstance(response, dict) and response.get("status") == 400:
-                _r["zenodo_error"] = response.get("message")
+                _r["zenodo_error"] = f"{response.get('message')} : {response.get('errors')}"
             res.append(_r)
         return serializer().serialize(res)
+
+    def retry_failed(self):
+        """Reset status of failed records to `TODO`."""
+        records = self.db.get_failed_records()
+        n_records = 0
+        for record in records:
+            self.db.update_record_status(record, RecordStatus.TODO)
+            n_records += 1
+        return n_records
