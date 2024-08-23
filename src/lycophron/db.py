@@ -9,6 +9,7 @@
 import datetime
 import json
 import logging
+from hashlib import md5
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -26,6 +27,14 @@ def custom_serializer(o):
     else:
         # raises TypeError: o not JSON serializable
         return json.dumps(o, default=str)
+
+
+def file_checksum(filename):
+    checksum = md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(4096), b""):
+            checksum.update(chunk)
+    return f"md5:{checksum.hexdigest()}"
 
 
 class LycophronDB(object):
@@ -99,7 +108,7 @@ class LycophronDB(object):
             community = Community(slug=community)
             new_record.communities.append(community)
         for file in cleaned_files:
-            file = File(filename=file)
+            file = File(filename=file, checksum=file_checksum(f"files/{file}"))
             new_record.files.append(file)
         self.session.add(new_record)
         repr = record.get("id") or record.get("title")
@@ -107,6 +116,7 @@ class LycophronDB(object):
             self.session.commit()
         except Exception as e:
             self.session.rollback()
+            logger.debug(f"Record {repr} was rejected by database. {e}")
             raise DatabaseResourceNotModified(
                 f"Record {repr} was rejected by database."
             )
@@ -122,18 +132,19 @@ class LycophronDB(object):
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record update.")
 
-        if record.failed or record.published:
+        if record.published:
             raise DatabaseResourceNotModified(
                 f"Record {record.id} is already published or failed."
             )
 
         input_metadata = data["input_metadata"]
+        logger.debug(input_metadata)
         record.input_metadata = input_metadata
         record.status = RecordStatus.TODO
         self.session.commit()
         return record
 
-    def get_unpublished_deposits(self, number):
+    def get_unpublished_deposits(self, number=None):
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record fetching.")
         query = self.session.query(Record).filter(
@@ -143,6 +154,33 @@ class LycophronDB(object):
             query = query.limit(number)
         records = query.all()
         return records
+
+    def get_failed_records(self, number=None):
+        """Return failed records."""
+        query = self.session.query(Record).filter(
+            Record.status.in_(RecordStatus.failed_statuses)
+        )
+        if number:
+            query = query.limit(number)
+        return query
+
+    def update_record_status(self, record: Record, status: RecordStatus):
+        """Update record status."""
+        logger.debug(f"Updating record {record.id} status to {status}")
+        if not self.database_exists():
+            raise DatabaseNotFound("Database not found. Aborting record update.")
+
+        if record.published:
+            raise DatabaseResourceNotModified(
+                f"Record {record.id} is already published."
+            )
+
+        if status not in RecordStatus or not isinstance(status, RecordStatus):
+            raise ValueError(f"Invalid status: {status}")
+
+        record.status = status
+        self.session.commit()
+        return record
 
     def _record_to_dict(self, record, columns):
         return {c.key: getattr(record, c.key) for c in columns}

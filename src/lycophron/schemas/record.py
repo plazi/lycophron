@@ -38,7 +38,7 @@ class Metadata(Schema):
     publication_date = fields.String()
     description = fields.String()
     version = fields.String()
-    publisher = fields.String()
+    publisher = fields.String(default="Zenodo")
 
     def load_related_identifiers(self, original):
         output = {"related_identifiers": []}
@@ -339,10 +339,10 @@ class Metadata(Schema):
 
         return result
 
-    @post_load
-    def clean(self, value, **kwargs):
-        output = clean_empty(value)
-        return output
+    # @post_load
+    # def clean(self, value, **kwargs):
+    #     output = clean_empty(value)
+    #     return output
 
 
 class RecordRow(Schema):
@@ -356,9 +356,9 @@ class RecordRow(Schema):
 
     def load_doi(self, original):
         doi_value = original.get("doi")
-        if doi_value:
+        if doi_value.strip():
             return {"pids": {"doi": {"identifier": doi_value, "provider": "external"}}}
-        return {}
+        return {"pids": {}}
 
     def load_custom_fields(self, original):
         output = dict()

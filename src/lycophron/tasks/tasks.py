@@ -6,7 +6,6 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks implementation."""
 
-import traceback
 from datetime import datetime, timedelta, timezone
 from time import sleep
 
@@ -73,6 +72,7 @@ def create_draft_record(client, record):
 
 @state_transition(
     frm=[
+        RecordStatus.QUEUED,
         RecordStatus.DRAFT_CREATED,
         RecordStatus.METADATA_UPDATED,
         RecordStatus.FILE_UPLOADED,
@@ -85,7 +85,7 @@ def update_draft_metadata(client, record, draft=None):
         draft = client.records(record.upload_id).draft.get()
     res = draft.update(data=DraftMetadata(**record.input_metadata))
     record.response = res.data
-    if res.data.get("errors"):
+    if getattr(res.data, "errors", None):
         raise Exception("Metadata update failed")
 
 
@@ -95,9 +95,27 @@ def update_draft_metadata(client, record, draft=None):
     err=RecordStatus.FILE_FAILED,
 )
 def upload_record_files(client, record, draft=None):
+    def _sync_files(record, draft):
+        for local_file in record.files:
+            try:
+                rem_file = draft.files(local_file.filename).get()
+                rem_status = rem_file.data["status"]
+                if rem_status == "completed":
+                    local_file.status = FileStatus.UPLOADED
+                elif rem_status == "pending":
+                    local_file.status = FileStatus.TODO
+                    rem_file.delete()
+            except HTTPError as e:
+                if e.response.status_code == 404:
+                    local_file.status = FileStatus.TODO
+            except Exception as e:
+                logger.debug(f"Error getting remote file {local_file.filename}: {e}")
+                raise e
+
     if not draft:
         draft = client.records(record.upload_id).draft.get()
 
+    _sync_files(record, draft)
     files = record.files
     for f in files:
         if f.status == FileStatus.UPLOADED:

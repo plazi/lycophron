@@ -272,6 +272,18 @@ def validate(file):
 
 
 @lycophron.command()
+def retry_failed():
+    """Set failed records to be retried."""
+    app = LycophronApp()
+    queued_records = 0
+    try:
+        queued_records = app.project.retry_failed()
+    except Exception as e:
+        click.secho(f"Failed to retry records: {e}", fg="red")
+        return
+    click.secho(f"{queued_records} records queued for retrying.", fg=INFO_COLOR)
+
+@lycophron.command()
 def recreate():
     """Recreate the project."""
     try:
