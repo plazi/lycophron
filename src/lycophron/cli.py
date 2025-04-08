@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -107,7 +106,7 @@ def export(file, all):
 
 @lycophron.command()
 def start():
-    """Publishes records to Zenodo. If specified, only n records are published. Otherwise, publishes all."""
+    """Starts the background worker for publishing records."""
     click.secho("Records queued for publishing.", fg=INFO_COLOR)
     from .tasks import app as celery_app
 
@@ -161,8 +160,9 @@ def set_config(name):
 def new_template(custom, access, file, all, minimal):
     """Creates a new CSV template.
 
-    By default, the template includes the minimal required fields and a small subset of RDM fields.
-    """  # noqa: D401
+    By default, the template includes the minimal required fields and a small
+    subset of RDM fields.
+    """
     # Consolidate all fields
     app = LycophronApp()
 
@@ -226,7 +226,7 @@ def validate(file):
     click.secho("App is valid.", fg="green")
 
     # Validates headers
-    with open(file, "r", newline="", encoding="utf-8") as csvfile:
+    with open(file, newline="", encoding="utf-8") as csvfile:
         reader = csv.reader(csvfile)
         actual_headers = next(reader)  # Read the first row, which contains headers
 
@@ -283,6 +283,7 @@ def retry_failed():
         return
     click.secho(f"{queued_records} records queued for retrying.", fg=INFO_COLOR)
 
+
 @lycophron.command()
 def recreate():
     """Recreate the project."""
@@ -290,7 +291,10 @@ def recreate():
         app = LycophronApp()
         # Are you sure?
         click.confirm(
-            "Are you sure you want to recreate the project? This will delete all records and files.",
+            (
+                "Are you sure you want to recreate the project? "
+                "This will delete all records and files."
+            ),
             abort=True,
         )
         app.recreate()

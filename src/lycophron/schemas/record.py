@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -6,18 +5,13 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Record schema."""
 
-from copy import deepcopy
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load
 
 from ..logger import logger
 
 
 def clean_empty(data):
-    output = {}
-    for key, value in data.items():
-        if value:
-            output[key] = value
-    return output
+    return {key: value for key, value in data.items() if value}
 
 
 class NewlineList(fields.Field):
@@ -282,7 +276,7 @@ class Metadata(Schema):
                     person["affiliations"].append(affiliation)
                 elif parts[1] == "role":
                     if parts[2] == "id":
-                        person["role"] = dict(id=val)
+                        person["role"] = {"id": val}
 
         cleaned_people = [person for person in people if person]
 
@@ -291,7 +285,7 @@ class Metadata(Schema):
             affiliations = person.pop("affiliations", [])
             person_type = person.get("type")
             if person_type not in ["organizational", "personal"]:
-                logger.debug(f"{original['id']} invalid type: {person_type}")
+                logger.debug("%s invalid type: %s", original["id"], person_type)
                 raise ValidationError(
                     "Invalid type. Only 'organizational' and 'personal' are supported.",
                     creatibutor_type,
@@ -362,8 +356,14 @@ class RecordRow(Schema):
         return {"pids": {}}
 
     def load_custom_fields(self, original):
-        output = dict()
-        for key, value in self.context.get("BASE_CUSTOM_FIELD_PREFIXES").items():
+        output = {}
+        base_prefixes = self.context.get("BASE_CUSTOM_FIELD_PREFIXES", {})
+        base_definitions = self.context.get("BASE_CUSTOM_FIELD_DEFINITIONS", {})
+        additional_prefixes = self.context.get("ADDITIONAL_CUSTOM_FIELD_PREFIXES", {})
+        additional_definitions = self.context.get(
+            "ADDITIONAL_CUSTOM_FIELD_DEFINITIONS", {}
+        )
+        for key, value in base_prefixes.items():
             output[f"{key}:{value}"] = {}
 
         # Iterate over all items in the original data
@@ -378,37 +378,29 @@ class RecordRow(Schema):
 
             prefix, field = split_key
             field_prefixes = {
-                **self.context.get("BASE_CUSTOM_FIELD_PREFIXES"),
-                **self.context.get("ADDITIONAL_CUSTOM_FIELD_PREFIXES"),
+                **base_prefixes,
+                **additional_prefixes,
             }
             # Find the key in field_prefixes corresponding to the prefix
             key_of_prefix = next(
                 (key for key, value in field_prefixes.items() if value == prefix), None
             )
 
-            basic_field_definitions = self.context.get("BASE_CUSTOM_FIELD_DEFINITIONS")
-            if key_of_prefix and field in basic_field_definitions.get(
-                key_of_prefix, []
-            ):
+            if key_of_prefix and field in base_definitions.get(key_of_prefix, []):
                 prefix = f"{key_of_prefix}:{prefix}"
                 if key_of_prefix in ["thesis"]:
                     output[prefix] = value
                 else:
                     output[prefix][field] = value
 
-            additional_field_definitions = self.context.get(
-                "ADDITIONAL_CUSTOM_FIELD_DEFINITIONS"
-            )
-            if key_of_prefix and field in additional_field_definitions.get(
-                key_of_prefix, []
-            ):
+            if key_of_prefix and field in additional_definitions.get(key_of_prefix, []):
                 prefix = f"{prefix}:{field}"
                 output[prefix] = value.split("\n")
 
         # Remove empty dictionaries
         output = {k: v for k, v in output.items() if v}
 
-        return dict(custom_fields=output)
+        return {"custom_fields": output}
 
     def load_access(self, original):
         output = {"access": {}}

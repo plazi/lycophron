@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -126,7 +125,8 @@ class Defaults:
         "access.embargo.reason",
     ]
 
-    # The base ones are the ones that will be formatted to field:field.value f.e. journal:journal.title
+    # The base ones are the ones that will be formatted to field:field.value
+    # e.g. journal:journal.title
     BASE_CUSTOM_FIELD_PREFIXES = {
         "journal": "journal",
         "meeting": "meeting",
@@ -258,7 +258,7 @@ required_configs = ["TOKEN", "SQLALCHEMY_DATABASE_URI", "ZENODO_URL"]
 
 
 class Config(dict):
-    def __init__(self, root_path, defaults: None) -> None:
+    def __init__(self, root_path, defaults) -> None:
         self.defaults = defaults
         self.root_path = root_path
 
@@ -310,11 +310,9 @@ class Config(dict):
         """Check if the URL is valid."""
         parsed_url = urlparse(self["ZENODO_URL"])
         if not all([parsed_url.scheme, parsed_url.netloc]):
-            raise InvalidConfig(f"Invalid URL provided: {self['ZENODO_URL']}.")
+            raise InvalidConfig(key="ZENODO_URL", value=self["ZENODO_URL"])
 
-    def update_config(self, value, persist=False):
-        if not isinstance(value, dict):
-            raise TypeError("Config must be a dictionary with pair key/value")
+    def update_config(self, value: dict, persist=False):
         super().update(value)
         if persist:
             self.cfgLoader.update(value)
@@ -333,7 +331,7 @@ class ConfigLoader(ABC):
         return otp
 
     @abstractmethod
-    def load() -> dict:
+    def load(self) -> dict:
         pass
 
 
@@ -360,9 +358,7 @@ class CFGLoader(ConfigLoader):
     def deserialize(self, key, val):
         return f"{key.upper()} = '{val}'\n"
 
-    def dump(self, dump_data) -> None:
-        if not isinstance(dump_data, dict):
-            raise TypeError("Dump data must be a dictionary")
+    def dump(self, dump_data: dict) -> None:
         with open(self.cfg_path, "w") as fp:
             for key, value in dump_data.items():
                 fp.write(self.deserialize(key, value))
@@ -372,20 +368,18 @@ class CFGLoader(ConfigLoader):
         file_contents = self.load()
         return key in file_contents.keys()
 
-    def update(self, input_dict) -> bool:
-        if not isinstance(input_dict, dict):
-            raise TypeError("Config must be a dictionary with pair key/value")
-
+    def update(self, input_value: dict) -> bool:
         if not self.exists():
             return False
 
         file_contents = self.load()
 
-        for key, value in input_dict.items():
+        for key, value in input_value.items():
             upper_key = str(key).upper()
             if self.key_exists_in_file(upper_key):
-                logger.warn(
-                    f"Config '{upper_key}' already exists in {self.file_name} file. Overriding."
+                logger.warning(
+                    f"Config '{upper_key}' already exists in {self.file_name} file. "
+                    "Overriding."
                 )
             file_contents[upper_key] = value
         self.dump(file_contents)

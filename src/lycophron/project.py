@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -97,8 +96,8 @@ class Project:
                 record = row_schema.load(data)
             except Exception as e:
                 logger.debug(f"Record {data} validation failed.")
-                raise RecordValidationError(str(e))
-            fnames = record["files"]
+                raise RecordValidationError(str(e)) from e
+            fnames = record.get("files", [])
             logger.debug(f"Validating files: {fnames}")
             for fname in fnames:
                 if not self._file_exists(Path(directory) / fname):
@@ -142,7 +141,9 @@ class Project:
                 "zenodo_error": "",
             }
             if isinstance(response, dict) and response.get("status") == 400:
-                _r["zenodo_error"] = f"{response.get('message')} : {response.get('errors')}"
+                _r["zenodo_error"] = (
+                    f"{response.get('message')} : {response.get('errors')}"
+                )
             res.append(_r)
         return serializer().serialize(res)
 
