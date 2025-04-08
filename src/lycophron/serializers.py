@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -26,13 +25,14 @@ class SerializerFactory:
             return CSVSerializer()
         else:
             raise NotImplementedError(
-                f"Format {format} is not supported yet! Supported formats: {[e.value for e in Format]}"
+                f"Format {format} is not supported yet! Supported formats: "
+                f"{[e.value for e in Format]}"
             )
 
 
 class Serializer(ABC):
     @abstractmethod
-    def serialize(data):
+    def serialize(self, data: list, **kwargs):
         pass
 
 

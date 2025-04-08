@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -14,7 +13,7 @@ from inveniordm_py import InvenioAPI
 
 from .client import create_session
 from .config import Config
-from .errors import InvalidDirectoryError
+from .errors import InvalidConfig, InvalidDirectoryError
 from .project import Project
 
 
@@ -33,7 +32,7 @@ class SingletonMeta(type):
         return cls._instances[cls]
 
 
-class LycophronApp(object, metaclass=SingletonMeta):
+class LycophronApp(metaclass=SingletonMeta):
     def __init__(self, name=None) -> None:
         self._name = name
 
@@ -79,7 +78,8 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def init(self):
         """Initialize the app.
 
-        This method is responsible for creating the project directory, the config, database and logger files.
+        This method is responsible for creating the project directory, the
+        config, database and logger files.
         """
         self._create_directory()
         self._init_config()
@@ -96,11 +96,9 @@ class LycophronApp(object, metaclass=SingletonMeta):
     def _validate_directory(self):
         """Validate the app directory."""
         if not os.path.exists(os.path.join(self.root_path, "files")):
-            raise InvalidDirectoryError(
-                f"Directory {self.root_path} does not exist. Create it first."
-            )
+            raise InvalidDirectoryError(self.root_path)
 
-    def _init_config(self) -> Config:
+    def _init_config(self):
         """Initialize the config."""
         self.config.create()
 
@@ -126,6 +124,10 @@ class LycophronApp(object, metaclass=SingletonMeta):
         url = config["ZENODO_URL"] + "/me"
         response = session.get(url)
         if response.status_code != 200:
-            raise ValueError(
-                f"Invalid token or URL provided. Token: {config['TOKEN']}, URL: {config['ZENODO_URL']}"
+            raise ExceptionGroup(
+                "InvalidToken",
+                [
+                    InvalidConfig(key="TOKEN", value=config["TOKEN"]),
+                    InvalidConfig(key="ZENODO_URL", value=config["ZENODO_URL"]),
+                ],
             )

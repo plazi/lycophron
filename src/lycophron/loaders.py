@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -28,7 +27,8 @@ class LoaderFactory:
     def _get_loader(self, format):
         if format not in [e.value for e in Format]:
             raise NotImplementedError(
-                f"Format {format} is not supported yet! Supported formats: {[e.value for e in Format]}"
+                f"Format {format} is not supported yet! "
+                "Supported formats: {[e.value for e in Format]}"
             )
 
         if format == Format.CSV.value:

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
 # Lycophron is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
-"""Database manager for lycophron. Provides basic functionalities to create a database."""
+"""Database manager for Lycophron."""
 
 import datetime
 import json
@@ -37,7 +36,7 @@ def file_checksum(filename):
     return f"md5:{checksum.hexdigest()}"
 
 
-class LycophronDB(object):
+class LycophronDB:
     """Manages a lycophron DB."""
 
     def __init__(self, uri) -> None:
@@ -63,14 +62,15 @@ class LycophronDB(object):
     def _create_database(self) -> None:
         """Creates a database"""
         if self.database_exists():
-            raise DatabaseAlreadyExists("A database is already created.")
+            raise DatabaseAlreadyExists()
         create_database(self.engine.url)
         logger.info("Database created.")
 
     def recreate_db(self) -> None:
         """Drop and recreate database."""
-        logger.warn(
-            "Recreating database. THIS WILL DESTROY THE CURRENT DATABASE, PROCEED WITH CAUTION."
+        logger.warning(
+            "Recreating database. "
+            "THIS WILL DESTROY THE CURRENT DATABASE, PROCEED WITH CAUTION."
         )
         self._drop_database()
         create_database(self.engine.url)
@@ -90,7 +90,7 @@ class LycophronDB(object):
         :param record: deserialized record
         :type record: dict
         """
-        logger.debug(f"Adding record {record.get('id')}")
+        logger.debug("Adding record %s", record.get("id"))
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record add.")
 
@@ -100,15 +100,15 @@ class LycophronDB(object):
             remote_metadata={},
         )
         cleaned_community = [
-            community for community in record.get("communities") if community
+            community for community in record.get("communities", []) if community
         ]
-        cleaned_files = [file for file in record.get("files") if file]
+        cleaned_files = [file for file in record.get("files", []) if file]
 
-        for community in cleaned_community:
-            community = Community(slug=community)
-            new_record.communities.append(community)
-        for file in cleaned_files:
-            file = File(filename=file, checksum=file_checksum(f"files/{file}"))
+        for comm_slug in cleaned_community:
+            comm_obj = Community(slug=comm_slug)
+            new_record.communities.append(comm_obj)
+        for filename in cleaned_files:
+            file = File(filename=filename, checksum=file_checksum(f"files/{filename}"))
             new_record.files.append(file)
         self.session.add(new_record)
         repr = record.get("id") or record.get("title")
@@ -116,17 +116,17 @@ class LycophronDB(object):
             self.session.commit()
         except Exception as e:
             self.session.rollback()
-            logger.debug(f"Record {repr} was rejected by database. {e}")
+            logger.debug("Record %s was rejected by database. %s", repr, e)
             raise DatabaseResourceNotModified(
                 f"Record {repr} was rejected by database."
-            )
+            ) from e
 
     def get_record(self, id):
         rec = self.session.query(Record).get(id)
         return rec
 
     def update_record(self, record: Record, data: dict):
-        logger.debug(f"Updating record {record.id}")
+        logger.debug("Updating record %s", record.id)
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record update.")
 
@@ -164,7 +164,7 @@ class LycophronDB(object):
 
     def update_record_status(self, record: Record, status: RecordStatus):
         """Update record status."""
-        logger.debug(f"Updating record {record.id} status to {status}")
+        logger.debug("Updating record %s status to %s", record.id, status)
         if not self.database_exists():
             raise DatabaseNotFound("Database not found. Aborting record update.")
 
@@ -197,10 +197,7 @@ class LycophronDB(object):
         if not fields:
             fields = [Record.upload_id, Record.input_metadata]
         q_res = self.session.query(*fields).all()
-        res = []
-        for record in q_res:
-            res.append(self._record_to_dict(record, fields))
-        return res
+        return [self._record_to_dict(record, fields) for record in q_res]
 
 
 # TODO FILE_FAILED: imagine I fix the file name, then how do I retrigger?

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -6,7 +5,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks implementation."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from time import sleep
 
 from inveniordm_py.files.metadata import FilesListMetadata, OutgoingStream
@@ -110,7 +109,7 @@ def upload_record_files(client, record, draft=None):
                     local_file.status = FileStatus.TODO
             except Exception as e:
                 logger.debug(f"Error getting remote file {local_file.filename}: {e}")
-                raise e
+                raise
 
     if not draft:
         draft = client.records(record.upload_id).draft.get()
@@ -130,7 +129,7 @@ def upload_record_files(client, record, draft=None):
                     draft.files(f.filename).delete()
                     upload_file(client, f, draft)  # TODO Configure number of retries
             else:
-                raise e
+                raise
 
 
 @state_transition(frm=FileStatus.TODO, to=FileStatus.UPLOADED, err=FileStatus.FAILED)
@@ -208,7 +207,7 @@ def process_record(record_id):
             logger.error(f"Error processing record {db_record.id}: {e}")
             db_record.error = str(e)
             lapp.project.db.session.commit()
-            raise e
+            raise
         break
 
 
@@ -231,7 +230,7 @@ def record_dispatcher(num_records=10):
             # When a record is failed, something has to be done first
             continue
         elif retry_time and (
-            datetime.now(timezone.utc) - record.updated.replace(tzinfo=timezone.utc)
+            datetime.now(UTC) - record.updated.replace(tzinfo=UTC)
         ) > timedelta(seconds=retry_time):
             continue
 

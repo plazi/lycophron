@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -26,7 +25,7 @@ stdout_formatter = colorlog.ColoredFormatter(
         "ERROR": "red",
         "CRITICAL": "bold_red",
     },
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 stdout_handler.setFormatter(stdout_formatter)
 

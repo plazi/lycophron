@@ -4,103 +4,107 @@ Lycophron is a CLI tool to support batch uploads of records to Zenodo.
 
 The tool supports the upload through CSV files that describe each record to be uploaded.
 
-## "The" Quickstart Guide
+## Quickstart Guide
 
-1. Installation
+### Installation
 
-    Install from GitHub using `pip`:
+Install from GitHub using [`uv`](https://github.com/astral-sh/uv):
 
-    ```bash
-    pip install --user "lycophron @ git+https://github.com/plazi/lycophron@main"
-    ```
+```bash
+uv tool install "lycophron @ git+https://github.com/plazi/lycophron@main"
+```
 
-    Alternatively, use [pipx](https://pipx.pypa.io/):
+Alternatively, use [pipx](https://pipx.pypa.io/):
 
-    ```bash
-    pipx install "lycophron @ git+https://github.com/plazi/lycophron@main"
-    ```
+```bash
+pipx install "lycophron @ git+https://github.com/plazi/lycophron@main"
+```
 
-2. Initalize a local project named "monkeys"
+### Initalize a local project
 
-    ```bash
-    lycophron init monkeys
-    ```
+Let's initalize a local project named `monkeys`:
 
-    > You will be prompted to input a Zenodo personal access token authentication token. You can leave it empty as this can be done afterward by directly editing the configuration file.
+```bash
+lycophron init monkeys
+```
 
-    ```bash
-    Zenodo token []:
-    ```
+> You will be prompted to input a Zenodo personal access token authentication token. You can leave it empty as this can be done afterward by directly editing the configuration file.
 
-    List the project contents:
+```bash
+Zenodo token []:
+```
 
-    ```bash
-    cd monkeys/
+List the project contents:
 
-    tree -F
-    ./
-    ├── files/
-    ├── lycophron.cfg
-    └── lycophron.db
-    ```
+```bash
+cd monkeys/
 
-3. Configure the project (add or edit `TOKEN` and `ZENODO_URL`)
+tree -F
+./
+├── files/
+├── lycophron.cfg
+└── lycophron.db
+```
 
-    In Zenodo (or Zenodo Sandbox), go to "My account" > "Applications", and under "Personal access tokens" click on the "New token" button:
+### Configure the project
 
-    ![Zenodo applications](docs/zenodo-token-01-applications.png)
+Add or edit `TOKEN` and `ZENODO_URL` in `lycophron.cfg`.
 
-    Provide a name, define the scopes, and create the token:
+In Zenodo (or Zenodo Sandbox), go to "My account" > "Applications", and under "Personal access tokens" click on the "New token" button:
 
-    ![Zenodo new token](docs/zenodo-token-02-new.png)
+![Zenodo applications](docs/zenodo-token-01-applications.png)
 
-    Copy the generated access token:
+Provide a name, define the scopes, and create the token:
 
-    ![Zenodo created token](docs/zenodo-token-03-created.png)
+![Zenodo new token](docs/zenodo-token-02-new.png)
 
-    Configure the token in the configuration file:
+Copy the generated access token:
 
-    ```bash
-    cat lycophron.cfg
+![Zenodo created token](docs/zenodo-token-03-created.png)
 
-    TOKEN = 'CHANGE_ME'
-    ZENODO_URL = 'https://sandbox.zenodo.org/api'  # Zenodo Sandbox
-    # ZENODO_URL = 'https://zenodo.org/api'  # Zenodo Production
-    ```
+Configure the token in the configuration file:
 
-4. Create a CSV file from a template
+```bash
+cat lycophron.cfg
 
-    Generate a template with all the fields:
+TOKEN = 'CHANGE_ME'
+ZENODO_URL = 'https://sandbox.zenodo.org/api'  # Zenodo Sandbox
+# ZENODO_URL = 'https://zenodo.org/api'  # Zenodo Production
+```
 
-    ```bash
-    lycophron new-template --file data-all.csv --all
-    ```
+### Generate a template CSV import file
 
-    Or generate a template with specific custom fields (e.g. `dwc` and `ac`):
+Generate a template with all the fields:
 
-    ```bash
-    lycophron new-template --file data-dwc-ac.csv --custom "dwc,ac"
-    ```
+```bash
+lycophron new-template --file data-all.csv --all
+```
 
-    Or generate a template with minimal fields:
+Or generate a template with specific custom fields (e.g. `dwc` and `ac`):
 
-    ```bash
-    lycophron new-template --file data.csv --minimal
-    ```
+```bash
+lycophron new-template --file data-dwc-ac.csv --custom "dwc,ac"
+```
 
-5. Fill in the metadata and load the file
+Or generate a template with minimal fields:
 
-    Edit the CSV file, add one line per record, and load the records into the local project database with the following command:
+```bash
+lycophron new-template --file data.csv --minimal
+```
 
-    ```bash
-    lycophron load --file data.csv
-    ```
+### Fill in metadata and load the file
 
-6. Publish to Zenodo
+Edit the CSV file, add one line per record, and load the records into the local project database with the following command:
 
-    ```bash
-    lycophron start
-    ```
+```bash
+lycophron load --file data.csv
+```
+
+### Publish to Zenodo
+
+```bash
+lycophron start
+```
 
 ## Getting started
 
@@ -241,44 +245,38 @@ Example:
 
 ## Development
 
+### Running tests
+
+To run the tests:
+
+```bash
+uv run pytest
+```
+
 ### Dependency management
 
 To manage Python dependencies, Lycophron uses [`uv`](https://github.com/astral-sh/uv).
 
-#### Generate dependency files
-
-> You should not need to do this. More often, you will want to just bump all dependencies to their latest versions. See [upgrading dependencies](#upgrade-all-dependencies)
+#### Generate dependency lock file
 
 ```shell
-# Generate requirements.txt
-uv pip compile pyproject.toml > requirements.txt
-
-# Generate requirements-dev.txt
-uv pip compile pyproject.toml --extra tests > requirements-dev.txt
+uv lock
 ```
 
 #### Add a new dependency
 
-To add a new dependency, add it in the `dependencies` section of the `pyproject.toml` file. Add testing/development dependencies under `[project.optional-dependencies]` section's `tests` extra.
-
 ```shell
-# Update the requirements.txt file
-uv pip compile pyproject.toml --upgrade-package <new-package>
+# Updates the `dependencies` section of pyproject.toml
+uv add <new-package>
 
-# Update the requirements-dev.txt file
-uv pip compile pyproject.toml --extra tests --upgrade-package <new-package>
+# Updates the `dev` group under the `dependency-groups` section of pyproject.toml
+uv add --dev <new-dev-package>
 ```
 
 #### Upgrade all dependencies
 
-To upgrade all dependencies in development, run the following command in your terminal:
+To upgrade all dependencies, run the following command in your terminal:
 
 ```shell
-uv pip compile pyproject.toml --extra tests --upgrade
-```
-
-and for production:
-
-```shell
-uv pip compile pyproject.toml --upgrade
+uv sync --upgrade
 ```

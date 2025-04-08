@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (C) 2023 CERN.
 #
@@ -10,7 +9,14 @@ from marshmallow import ValidationError
 
 
 class LycophronError(Exception):
-    pass
+    error_type: str
+    hint: str
+    message: str
+
+    def __init__(self, *args, message=None, **kwargs):
+        if message is None:
+            message = self.message
+        super().__init__(message, *args, **kwargs)
 
 
 class ConfigError(LycophronError):
@@ -18,7 +24,10 @@ class ConfigError(LycophronError):
 
 
 class ConfigNotFound(ConfigError):
-    hint = "The configuration was deemed as required by the application. Try setting it in the configuration file."
+    hint = (
+        "The configuration was deemed as required by the application. Try setting it "
+        "in the configuration file."
+    )
 
     def __init__(self, config_name, *args: object) -> None:
         super().__init__(*args)
@@ -29,26 +38,23 @@ class ConfigNotFound(ConfigError):
 
 
 class InvalidConfig(ConfigError):
-    pass
+    def __init__(self, *, key, value):
+        super().__init__(f"Invalid value '{value}' for config '{key}'")
 
 
 class DatabaseError(LycophronError):
-    pass
-
-
-class DatabaseAlreadyExists(DatabaseError):
-    pass
-
-
-class DatabaseNotFound(DatabaseError):
-    pass
-
-
-class DatabaseResourceNotModified(DatabaseError):
     error_type = "DATABASE"
 
 
-class Logger(object):
+class DatabaseAlreadyExists(DatabaseError):
+    message = "A database is already created."
+
+
+class DatabaseNotFound(DatabaseError):
+    message = "Database not found. Aborting record add."
+
+
+class DatabaseResourceNotModified(DatabaseError):
     pass
 
 
@@ -61,6 +67,9 @@ class InvalidDirectoryError(LycophronError):
     hint = (
         "Create the appropriate directory structure. See documentation on how to do it."
     )
+
+    def __init__(self, path):
+        super().__init__(f"Directory {path} does not exist. Create it first.")
 
 
 class RecordValidationError(RecordError, ValidationError):
