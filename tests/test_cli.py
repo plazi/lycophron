@@ -7,6 +7,7 @@
 
 import csv
 import os
+import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -193,6 +194,7 @@ def test_load_command():
                     "creators.type",
                     "creators.given_name",
                     "creators.family_name",
+                    "doi",
                 ]
             )
             writer.writerow(
@@ -205,6 +207,7 @@ def test_load_command():
                     "personal",
                     "John",
                     "Doe",
+                    "",
                 ]
             )
 
@@ -213,3 +216,344 @@ def test_load_command():
 
         assert result.exit_code == 0
         assert "Loading finished" in result.output
+
+
+def test_load_db_objects():
+    """Test that the load command correctly commits objects to the database."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.chdir(tmpdir)
+
+        # Initialize project
+        runner.invoke(lycophron, ["init"])
+
+        # Create test file
+        files_dir = Path(tmpdir) / "files"
+        test_file = files_dir / "test_file.txt"
+        with open(test_file, "w") as f:
+            f.write("Test content")
+
+        # Create a CSV file with a complete set of required fields
+        csv_path = os.path.join(tmpdir, "test_data.csv")
+        with open(csv_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            # Use new-template as reference for required fields
+            writer.writerow(
+                [
+                    "id",
+                    "title",
+                    "publication_date",
+                    "filenames",
+                    "resource_type.id",
+                    "creators.type",
+                    "creators.given_name",
+                    "creators.family_name",
+                    "contributors.type",
+                    "contributors.given_name",
+                    "contributors.family_name",
+                    "description",
+                    "rights.id",
+                    "communities",
+                    "doi",
+                ]
+            )
+            writer.writerow(
+                [
+                    "record1",
+                    "Test Record",
+                    "2023-01-01",
+                    "test_file.txt",
+                    "image",
+                    "personal",
+                    "John",
+                    "Doe",
+                    "personal",
+                    "Jane",
+                    "Smith",
+                    "This is a test description",
+                    "cc-by",
+                    "test-community",
+                    "",
+                ]
+            )
+
+        # Run load command
+        runner.invoke(lycophron, ["load", "--file", csv_path])
+
+        # Connect to the database directly to verify the objects
+        conn = sqlite3.connect(os.path.join(tmpdir, "lycophron.db"))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Check Record object
+        cursor.execute("SELECT * FROM record WHERE id = ?", ("record1",))
+        record = cursor.fetchone()
+        assert record is not None
+        assert record["id"] == "record1"
+
+        # Verify input_metadata
+        metadata = eval(record["input_metadata"])
+        assert metadata["metadata"]["title"] == "Test Record"
+        assert metadata["metadata"]["publication_date"] == "2023-01-01"
+        assert metadata["metadata"]["resource_type"]["id"] == "image"
+        assert len(metadata["metadata"]["creators"]) == 1
+        assert (
+            metadata["metadata"]["creators"][0]["person_or_org"]["type"] == "personal"
+        )
+        assert (
+            metadata["metadata"]["creators"][0]["person_or_org"]["given_name"] == "John"
+        )
+        assert (
+            metadata["metadata"]["creators"][0]["person_or_org"]["family_name"] == "Doe"
+        )
+
+        # Check status
+        assert record["status"] == "TODO"
+
+        # Check File object
+        cursor.execute("SELECT * FROM file WHERE record_id = ?", ("record1",))
+        file = cursor.fetchone()
+        assert file is not None
+        assert file["filename"] == "test_file.txt"
+        assert file["status"] == "TODO"  # FileStatus.TODO.value
+        assert "md5:" in file["checksum"]
+
+        # Check Community object
+        cursor.execute("SELECT * FROM community WHERE record_id = ?", ("record1",))
+        community = cursor.fetchone()
+        assert community is not None
+        assert community["slug"] == "test-community"
+        assert community["status"] == "TODO"  # CommunityStatus.TODO.value
+
+        conn.close()
+
+
+def test_load_multiple_records():
+    """Test loading multiple records into the database."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.chdir(tmpdir)
+
+        # Initialize project
+        runner.invoke(lycophron, ["init"])
+
+        # Create CSV file with multiple records
+        csv_path = os.path.join(tmpdir, "test_multi.csv")
+        with open(csv_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(
+                [
+                    "id",
+                    "title",
+                    "publication_date",
+                    "filenames",
+                    "resource_type.id",
+                    "creators.type",
+                    "creators.given_name",
+                    "creators.family_name",
+                    "contributors.type",
+                    "contributors.given_name",
+                    "contributors.family_name",
+                    "description",
+                    "rights.id",
+                    "doi",
+                ]
+            )
+            # Record 1
+            writer.writerow(
+                [
+                    "record1",
+                    "First Record",
+                    "2023-01-01",
+                    "",
+                    "image",
+                    "personal",
+                    "John",
+                    "Doe",
+                    "personal",
+                    "Jane",
+                    "Smith",
+                    "First record description",
+                    "cc-by",
+                    "",
+                ]
+            )
+            # Record 2
+            writer.writerow(
+                [
+                    "record2",
+                    "Second Record",
+                    "2023-02-01",
+                    "",
+                    "publication",
+                    "personal",
+                    "Jane",
+                    "Smith",
+                    "personal",
+                    "John",
+                    "Doe",
+                    "Second record description",
+                    "cc-by",
+                    "",
+                ]
+            )
+
+        # Run load command
+        runner.invoke(lycophron, ["load", "--file", csv_path])
+
+        # Connect to the database
+        conn = sqlite3.connect(os.path.join(tmpdir, "lycophron.db"))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        # Check both records were added
+        cursor.execute("SELECT COUNT(*) FROM record")
+        count = cursor.fetchone()[0]
+        assert count == 2
+
+        # Verify first record metadata
+        cursor.execute("SELECT * FROM record WHERE id = ?", ("record1",))
+        record1 = cursor.fetchone()
+        metadata1 = eval(record1["input_metadata"])
+        assert metadata1["metadata"]["title"] == "First Record"
+
+        # Verify second record metadata
+        cursor.execute("SELECT * FROM record WHERE id = ?", ("record2",))
+        record2 = cursor.fetchone()
+        metadata2 = eval(record2["input_metadata"])
+        assert metadata2["metadata"]["title"] == "Second Record"
+        assert metadata2["metadata"]["resource_type"]["id"] == "publication"
+        assert (
+            metadata2["metadata"]["creators"][0]["person_or_org"]["family_name"]
+            == "Smith"
+        )
+
+        conn.close()
+
+
+def test_load_update_record():
+    """Test that loading updates existing records correctly."""
+    runner = CliRunner()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        os.chdir(tmpdir)
+
+        # Initialize project
+        runner.invoke(lycophron, ["init"])
+
+        # Create initial CSV file
+        csv_path = os.path.join(tmpdir, "initial.csv")
+        with open(csv_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(
+                [
+                    "id",
+                    "title",
+                    "publication_date",
+                    "filenames",
+                    "resource_type.id",
+                    "creators.type",
+                    "creators.given_name",
+                    "creators.family_name",
+                    "contributors.type",
+                    "contributors.given_name",
+                    "contributors.family_name",
+                    "description",
+                    "rights.id",
+                    "doi",
+                ]
+            )
+            writer.writerow(
+                [
+                    "record1",
+                    "Original Title",
+                    "2023-01-01",
+                    "",
+                    "image",
+                    "personal",
+                    "John",
+                    "Doe",
+                    "personal",
+                    "Jane",
+                    "Smith",
+                    "Original description",
+                    "cc-by",
+                    "",
+                ]
+            )
+
+        # Load initial data
+        runner.invoke(lycophron, ["load", "--file", csv_path])
+
+        # Create update CSV file
+        update_csv_path = os.path.join(tmpdir, "update.csv")
+        with open(update_csv_path, "w", newline="") as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow(
+                [
+                    "id",
+                    "title",
+                    "publication_date",
+                    "filenames",
+                    "resource_type.id",
+                    "creators.type",
+                    "creators.given_name",
+                    "creators.family_name",
+                    "contributors.type",
+                    "contributors.given_name",
+                    "contributors.family_name",
+                    "description",
+                    "rights.id",
+                    "doi",
+                ]
+            )
+            writer.writerow(
+                [
+                    "record1",
+                    "Updated Title",
+                    "2023-02-15",
+                    "",
+                    "publication",
+                    "personal",
+                    "Jane",
+                    "Smith",
+                    "personal",
+                    "John",
+                    "Doe",
+                    "Updated description",
+                    "cc-by",
+                    "",
+                ]
+            )
+
+        # Load updated data
+        runner.invoke(lycophron, ["load", "--file", update_csv_path])
+
+        # Verify the record was updated
+        conn = sqlite3.connect(os.path.join(tmpdir, "lycophron.db"))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT COUNT(*) FROM record")
+        count = cursor.fetchone()[0]
+        assert count == 1, "There should still be only one record"
+
+        cursor.execute("SELECT * FROM record WHERE id = ?", ("record1",))
+        record = cursor.fetchone()
+        metadata = eval(record["input_metadata"])
+
+        # Check updated fields
+        assert metadata["metadata"]["title"] == "Updated Title"
+        assert metadata["metadata"]["publication_date"] == "2023-02-15"
+        assert metadata["metadata"]["resource_type"]["id"] == "publication"
+        assert (
+            metadata["metadata"]["creators"][0]["person_or_org"]["given_name"] == "Jane"
+        )
+        assert (
+            metadata["metadata"]["creators"][0]["person_or_org"]["family_name"]
+            == "Smith"
+        )
+
+        # Check status was reset to TODO
+        assert record["status"] == "TODO"
+
+        conn.close()
