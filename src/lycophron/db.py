@@ -5,9 +5,9 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Database manager for Lycophron."""
 
-import datetime
 import json
 import logging
+from datetime import datetime
 from hashlib import md5
 
 from sqlalchemy import create_engine
@@ -16,15 +16,26 @@ from sqlalchemy_utils.functions import create_database, database_exists, drop_da
 
 from .errors import DatabaseAlreadyExists, DatabaseNotFound, DatabaseResourceNotModified
 from .models import Community, File, Model, Record, RecordStatus
+from .references import ReferenceManager
 
 logger = logging.getLogger("lycophron")
 
 
 def custom_serializer(o):
-    if isinstance(o, datetime.datetime):
+    from .template import LazyReference
+
+    if isinstance(o, datetime):
         return str(o)
+    elif isinstance(o, LazyReference):
+        # Serialize a LazyReference object to a dictionary
+        return {
+            "type": "lazy_reference",
+            "record_id": o.record_id,
+            "field": o.field,
+            "bidirectional": o.bidirectional,
+        }
     else:
-        # raises TypeError: o not JSON serializable
+        # For all other types, use the default serialization
         return json.dumps(o, default=str)
 
 
@@ -47,6 +58,7 @@ class LycophronDB:
             bind=self.engine, autocommit=False, autoflush=False
         )
         self.session = scoped_session(_session_factory)
+        self.reference_manager = ReferenceManager(self.session)
 
     def init_db(self) -> None:
         """Initializes the lycophron database."""
@@ -113,7 +125,19 @@ class LycophronDB:
         self.session.add(new_record)
         repr = record.get("id") or record.get("title")
         try:
+            # Extract references from templates in the record metadata
+            references = self.reference_manager.extract_references(record)
+            logger.debug(
+                "Extracted %d references from record %s", len(references), repr
+            )
+
+            # First commit the record to get a valid ID
             self.session.commit()
+
+            # Now store the references
+            if references:
+                self.reference_manager.store_references(record.get("id"), references)
+
         except Exception as e:
             self.session.rollback()
             logger.debug("Record %s was rejected by database. %s", repr, e)
@@ -121,8 +145,13 @@ class LycophronDB:
                 f"Record {repr} was rejected by database."
             ) from e
 
-    def get_record(self, id):
-        rec = self.session.query(Record).get(id)
+    def get_record(self, id: str, resolve_refs: bool = False) -> Record | None:
+        """Get a record by ID, optionally resolving references."""
+        rec = self.session.get(Record, id)
+
+        if rec and resolve_refs:
+            return self.reference_manager.resolve_references(rec)
+
         return rec
 
     def update_record(self, record: Record, data: dict):
@@ -139,7 +168,28 @@ class LycophronDB:
         logger.debug(input_metadata)
         record.input_metadata = input_metadata
         record.status = RecordStatus.TODO
-        self.session.commit()
+
+        try:
+            # Extract references from templates in the updated record metadata
+            references = self.reference_manager.extract_references(data)
+            logger.debug(
+                "Extracted %d references from updated record %s",
+                len(references),
+                record.id,
+            )
+
+            # Commit the record changes first
+            self.session.commit()
+
+            # Now update the references
+            if references:
+                self.reference_manager.store_references(record.id, references)
+
+        except Exception as e:
+            self.session.rollback()
+            logger.error("Failed to update record %s: %s", record.id, e)
+            raise
+
         return record
 
     def get_unpublished_deposits(self, number=None):

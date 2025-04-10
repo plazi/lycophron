@@ -8,6 +8,7 @@
 from marshmallow import EXCLUDE, Schema, ValidationError, fields, post_load
 
 from ..logger import logger
+from ..template import TemplateEngine
 
 
 def clean_empty(data):
@@ -33,7 +34,7 @@ class Metadata(Schema):
     publication_date = fields.String()
     description = fields.String()
     version = fields.String()
-    publisher = fields.String(default="Zenodo")
+    publisher = fields.String(dump_default="Zenodo")
 
     def load_related_identifiers(self, original):
         output = {"related_identifiers": []}
@@ -349,6 +350,17 @@ class RecordRow(Schema):
     communities = NewlineList()
     files = NewlineList(data_key="filenames")
 
+    def __init__(self, *args, **kwargs):
+        if "context" in kwargs:
+            import contextvars
+
+            context = kwargs.pop("context")
+            self._context_var = contextvars.ContextVar("schema_context", default=None)
+            self._context_var.set(context)
+
+        super().__init__(*args, **kwargs)
+        self.template_engine = TemplateEngine()
+
     def load_doi(self, original):
         doi_value = original.get("doi")
         if doi_value.strip():
@@ -434,7 +446,71 @@ class RecordRow(Schema):
         )
         doi = self.load_doi(original)
         metadata = Metadata().load(original)
+
+        # Replace references in template format with LazyReference objects
+        def process_value(value):
+            """Process a string value to extract references."""
+            if isinstance(value, str) and "ref(" in value:
+                # Simple format like: {{ ref('record_id', 'field') }}
+                if value.strip().startswith("{{") and value.strip().endswith("}}"):
+                    try:
+                        # Extract parameters from the ref call
+                        parts = value.strip()[2:-2].strip()
+                        if parts.startswith("ref(") and parts.endswith(")"):
+                            args = parts[4:-1].split(",")
+                            record_id = args[0].strip().strip("'\"")
+                            field = args[1].strip().strip("'\"")
+                            bidirectional = True
+                            if len(args) > 2:
+                                bidirectional_str = args[2].strip().lower()
+                                bidirectional = bidirectional_str != "false"
+
+                            return self.template_engine.ref(
+                                record_id, field, bidirectional
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to parse reference: %s, error: %s", value, e
+                        )
+            return value
+
+        # Process all fields
+        def process_dict(data):
+            """Process all fields in a dictionary."""
+            result = {}
+            for key, value in data.items():
+                if isinstance(value, dict):
+                    result[key] = process_dict(value)
+                elif isinstance(value, list):
+                    result[key] = [process_item(item) for item in value]
+                elif isinstance(value, str):
+                    result[key] = process_value(value)
+                else:
+                    result[key] = value
+            return result
+
+        def process_item(item):
+            """Process an item that might be a dictionary, list or string."""
+            if isinstance(item, dict):
+                return process_dict(item)
+            elif isinstance(item, list):
+                return [process_item(v) for v in item]
+            elif isinstance(item, str):
+                return process_value(item)
+            else:
+                return item
+
+        # Process metadata to replace reference strings with LazyReference objects
+        processed_metadata = process_dict(metadata)
+
         result.update(
-            {"input_metadata": {"metadata": metadata, **doi, **access, **custom_fields}}
+            {
+                "input_metadata": {
+                    "metadata": processed_metadata,
+                    **doi,
+                    **access,
+                    **custom_fields,
+                }
+            }
         )
         return result

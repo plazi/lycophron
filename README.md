@@ -241,7 +241,52 @@ Example:
 - DOIs are generated on demand, existing or external DOIs are not accepted. [issue](https://github.com/plazi/lycophron/issues/19)
 - Metadata is compliant with legacy Zenodo, not RDM
 - Output is not clear for the user. E.g. user does not know what to run next, how to fix issues with the data, etc.
-- Linking between rows is not supported. E.g. row 1 references a record from row 2
+
+## Cross-referencing records
+
+You can use Jinja2 templates to create cross-references between records in your CSV. This allows one record to reference fields from another record.
+
+### Basic syntax
+
+Use the `ref` function in your CSV fields with the following syntax:
+
+```
+{{ ref("<item_id>", "<field>") }}
+```
+
+For example, to reference the DOI of a record with ID "specimen001":
+
+```
+{{ ref("specimen001", "doi") }}
+```
+
+### Example
+
+Imagine you have two records in your CSV - a specimen record and a figure record, where the figure documents the specimen. Here's how you can link them:
+
+Row 1 (Specimen):
+```
+id: specimen001
+...
+related_identifiers.identifier: {{ ref("figure001", "doi") }}
+related_identifiers.relation_type: isDocumentedBy
+```
+
+Row 2 (Figure):
+```
+id: figure001
+...
+related_identifiers.identifier: {{ ref("specimen001", "doi") }}
+related_identifiers.relation_type: documents
+```
+
+### Cross-reference behavior
+
+- References are stored as templates in their original form in the database
+- During publication, references are lazily resolved with the actual values
+- References are bi-directional by default, meaning both records reference each other
+- You can set references as one-directional with `{{ ref("record_id", "field", False) }}`
+- All records are first created as drafts to reserve DOIs, then cross-references are resolved
 
 ## Development
 
