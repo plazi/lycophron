@@ -50,8 +50,8 @@ def init(pname=None, token=None):
         app.init()
         if token:
             app.config.update_config({"token": token}, persist=True)
-    except Exception:
-        click.secho("Error initializing project.", fg="red")
+    except Exception as e:
+        click.secho(f"Error initializing project: {e}.", fg="red")
         return
 
     click.secho(f"Project initialized in directory {app.root_path}.", fg="green")
