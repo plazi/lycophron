@@ -5,8 +5,6 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Defines lycophron errors and handler."""
 
-from marshmallow import ValidationError
-
 
 class LycophronError(Exception):
     error_type: str
@@ -44,6 +42,7 @@ class InvalidConfig(ConfigError):
 
 class DatabaseError(LycophronError):
     error_type = "DATABASE"
+    message = "Database error occurred."
 
 
 class DatabaseAlreadyExists(DatabaseError):
@@ -55,11 +54,12 @@ class DatabaseNotFound(DatabaseError):
 
 
 class DatabaseResourceNotModified(DatabaseError):
-    pass
+    message = "Datbase resource not modified."
 
 
 class RecordError(LycophronError):
     error_type = "RECORD"
+    message = "Record error occurred."
 
 
 class InvalidDirectoryError(LycophronError):
@@ -72,11 +72,19 @@ class InvalidDirectoryError(LycophronError):
         super().__init__(f"Directory {path} does not exist. Create it first.")
 
 
-class RecordValidationError(RecordError, ValidationError):
+class RecordValidationError(RecordError):
     error_type = "DATA"
+    message = "Record validation failed."
     hint = "Check the data structure. E.g. values have the correct format."
 
 
 class InvalidRecordData(RecordError):
     error_type = "DATA"
     hint = "Check the data for, e.g. missing required fields like 'id', 'doi'."
+
+
+class TemplateError(LycophronError):
+    """Error raised when there is an issue with templates."""
+
+    error_type = "TEMPLATE"
+    hint = "Check the template syntax and structure."

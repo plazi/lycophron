@@ -16,19 +16,11 @@ from ..logger import logger
 from ..models import FileStatus, RecordStatus
 from . import app
 
+type Status = RecordStatus | FileStatus
 
-def state_transition(frm: FileStatus | list, to: FileStatus, err: FileStatus):
-    """Update state of record based on event.
 
-    If the event fails, the state is updated to `err`.
-
-    Args:
-    ----
-        frm (RecordStatus | list): The current possible state(s) of the record.
-        to (RecordStatus): The next state of the record.
-        err (RecordStatus): The state to update to if the event fails.
-
-    """
+def state_transition(frm: Status | list[Status], to: Status, err: Status):
+    """Update state of record based on event."""
 
     def update_state(event):
         def wrapper(client, obj, *args, **kwargs):
@@ -79,10 +71,19 @@ def create_draft_record(client, record):
     to=RecordStatus.METADATA_UPDATED,
     err=RecordStatus.METADATA_FAILED,
 )
-def update_draft_metadata(client, record, draft=None):
+def update_draft_metadata(client, record: Record, draft: Draft | None = None):
+    """Update draft metadata with resolved references."""
+    from lycophron.app import LycophronApp
+
+    lapp = LycophronApp()
     if not draft:
         draft = client.records(record.upload_id).draft.get()
-    res = draft.update(data=DraftMetadata(**record.input_metadata))
+
+    # Get the record with resolved references
+    resolved_record = lapp.project.db.reference_manager.resolve_references(record)
+
+    # Use the resolved metadata for the update
+    res = draft.update(data=DraftMetadata(**resolved_record.input_metadata))
     record.response = res.data
     if getattr(res.data, "errors", None):
         raise Exception("Metadata update failed")
@@ -108,7 +109,7 @@ def upload_record_files(client, record, draft=None):
                 if e.response.status_code == 404:
                     local_file.status = FileStatus.TODO
             except Exception as e:
-                logger.debug(f"Error getting remote file {local_file.filename}: {e}")
+                logger.debug(f"Error getting remote file {local_file.filename=}: {e=}")
                 raise
 
     if not draft:
@@ -133,8 +134,8 @@ def upload_record_files(client, record, draft=None):
 
 
 @state_transition(frm=FileStatus.TODO, to=FileStatus.UPLOADED, err=FileStatus.FAILED)
-def upload_file(client, file, draft):
-    logger.debug(f"Uploading file {file.filename}")
+def upload_file(client, file: File, draft: Draft):
+    logger.debug(f"Uploading file {file.filename=}")
     file_data = FilesListMetadata(
         [{"key": file.filename}]
     )  # TODO Cannot use FileMetadata for somereason
@@ -184,19 +185,44 @@ def process_record(record_id):
     lapp = LycophronApp()
     db_record = lapp.project.db.get_record(record_id)
     client = lapp.client
-    logger.debug(f"Processing record {record_id}")
+    logger.debug(f"Processing record {record_id=}")
+    if not db_record:
+        logger.error(f"Record {record_id} not found in the database.")
+        return
+
+    # Process only draft creation in this phase
+    # This allows all records to have pre-reserved DOIs before we update metadata
+    # with cross-references
+    if db_record.upload_id is None:
+        while True:
+            try:
+                draft = create_draft_record(client, db_record)
+                break
+            except HTTPError as e:
+                logger.error(f"Error creating draft for record {db_record.id=}: {e=}")
+                if e.response.status_code == 429:
+                    sleep(60)
+                    continue
+                else:
+                    db_record.response = e.response.json()
+                    lapp.project.db.session.commit()
+                    return
+            except Exception as e:
+                logger.error(f"Error creating draft for record {db_record.id=}: {e=}")
+                db_record.error = str(e)
+                lapp.project.db.session.commit()
+                raise
+
+    # Continue with the rest of the processing
     while True:
         try:
-            if db_record.upload_id:
-                draft = client.records(db_record.upload_id).draft
-            else:
-                draft = create_draft_record(client, db_record)
+            draft = client.records(db_record.upload_id).draft
             update_draft_metadata(client, db_record, draft=draft)
             upload_record_files(client, db_record, draft=draft)
             publish_record(client, db_record, draft=draft)
             # add_to_community(client, db_record)
         except HTTPError as e:
-            logger.error(f"Error processing record {db_record.id}: {e}")
+            logger.error(f"Error processing record {db_record.id=}: {e=}")
             if e.response.status_code == 429:
                 sleep(60)
                 continue
@@ -204,7 +230,7 @@ def process_record(record_id):
                 db_record.response = e.response.json()
                 lapp.project.db.session.commit()
         except Exception as e:
-            logger.error(f"Error processing record {db_record.id}: {e}")
+            logger.error(f"Error processing record {db_record.id=}: {e=}")
             db_record.error = str(e)
             lapp.project.db.session.commit()
             raise
@@ -220,13 +246,29 @@ def record_dispatcher(num_records=10):
     records = db.get_unpublished_deposits(num_records)
     # TODO why we need this?
     retry_time = lapp.config.get("RETRY_IGNORE_TIME")
-    # TODO For HTTP 500, maybe have max retries in a time frame
-    # TODO METADATA_FAILED, FILES_FAILED, PUBLISH_FAILED
+
+    # Process records in two phases:
+    # 1. First ensure all NEW records are queued for draft creation
+    # 2. Then process all records that have drafts created for metadata updates
+    todo_records = [r for r in records if r.status == RecordStatus.TODO]
+
+    # Count records that need draft creation (new records)
+    new_records = todo_records
+
+    # Phase 1: Queue all new records for draft creation first
+    for record in new_records:
+        record.status = RecordStatus.QUEUED
+        db.session.commit()
+        process_record.delay(record.id)
+
+    # If any new records are being processed, return and let them finish first
+    # This ensures all records have DOIs before processing metadata with references
+    if new_records:
+        return
+
+    # Phase 2: Process all records that already have drafts created
     for record in records:
-        if record.status == RecordStatus.TODO:
-            record.status = RecordStatus.QUEUED
-            db.session.commit()
-        elif record.failed:
+        if record.failed:
             # When a record is failed, something has to be done first
             continue
         elif retry_time and (

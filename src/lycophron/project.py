@@ -60,7 +60,7 @@ class Project:
             try:
                 record = row_schema.load(data)
             except Exception as e:
-                logger.error(e)
+                logger.exception(e)
             else:
                 records.append(record)
         return records
@@ -95,7 +95,7 @@ class Project:
             try:
                 record = row_schema.load(data)
             except Exception as e:
-                logger.debug(f"Record {data} validation failed.")
+                logger.exception(f"Record {data} validation failed.")
                 raise RecordValidationError(str(e)) from e
             fnames = record.get("files", [])
             logger.debug(f"Validating files: {fnames}")

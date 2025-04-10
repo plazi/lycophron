@@ -33,7 +33,7 @@ class Metadata(Schema):
     publication_date = fields.String()
     description = fields.String()
     version = fields.String()
-    publisher = fields.String(default="Zenodo")
+    publisher = fields.String(dump_default="Zenodo")
 
     def load_related_identifiers(self, original):
         output = {"related_identifiers": []}
@@ -428,13 +428,20 @@ class RecordRow(Schema):
 
     @post_load(pass_original=True)
     def load_metadata(self, result, original, **kwargs):
+        """Load all metadata fields and transform to a DB-ready dict."""
         access = self.load_access(original)
-        custom_fields = self.load_custom_fields(
-            original,
-        )
+        custom_fields = self.load_custom_fields(original)
         doi = self.load_doi(original)
         metadata = Metadata().load(original)
+
         result.update(
-            {"input_metadata": {"metadata": metadata, **doi, **access, **custom_fields}}
+            {
+                "input_metadata": {
+                    "metadata": metadata,
+                    **doi,
+                    **access,
+                    **custom_fields,
+                }
+            }
         )
         return result

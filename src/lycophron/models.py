@@ -7,9 +7,17 @@
 
 import enum
 
-from sqlalchemy import JSON, Column, Enum, ForeignKey, Integer, String, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy_utils.models import Timestamp
 
 Model = declarative_base()
@@ -70,6 +78,14 @@ class Record(Model, Timestamp):
     communities = relationship("Community", backref="record")
     files = relationship("File", backref="record")
 
+    # Reference relationships
+    outgoing_references = relationship(
+        "Reference", foreign_keys="Reference.source_record_id", backref="source_record"
+    )
+    incoming_references = relationship(
+        "Reference", foreign_keys="Reference.target_record_id", backref="target_record"
+    )
+
     # Represents the last known metadata's state on Zenodo
     remote_metadata = Column(JSON, default=None)
 
@@ -125,3 +141,16 @@ class Community(Model, Timestamp):
     record_id = Column(String, ForeignKey("record.id"))
     slug = Column(String)
     status = Column(Enum(CommunityStatus), default=CommunityStatus.TODO)
+
+
+class Reference(Model, Timestamp):
+    """Record reference that needs to be resolved during serialization."""
+
+    __tablename__ = "reference"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    source_record_id = Column(String, ForeignKey("record.id"))
+    target_record_id = Column(String, ForeignKey("record.id"))
+    source_field = Column(String)
+    target_field = Column(String)
+    bidirectional = Column(Boolean, default=True)
