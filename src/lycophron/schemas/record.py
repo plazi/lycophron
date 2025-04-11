@@ -42,19 +42,16 @@ class Metadata(Schema):
         original_identifiers = original.get("related_identifiers.identifier", "")
         identifiers = original_identifiers.split("\n") if original_identifiers else []
 
-        original_relation_types = original.get(
-            "related_identifiers.relation_type.id", ""
-        )
-        relation_types = (
-            original_relation_types.split("\n") if original_relation_types else []
-        )
-
-        original_resource_types = original.get(
+        relation_types = [
+            # relation types need to be lowercase
+            rel.lower()
+            for rel in original.get(
+                "related_identifiers.relation_type.id", ""
+            ).splitlines()
+        ]
+        resource_types = original.get(
             "related_identifiers.resource_type.id", ""
-        )
-        resource_types = (
-            original_resource_types.split("\n") if original_resource_types else []
-        )
+        ).splitlines()
 
         # Determine the number of related identifiers
         num_identifiers = max(
@@ -371,34 +368,33 @@ class RecordRow(Schema):
             # Split the key to get the prefix and the actual field name
             split_key = key.split(".") if "." in key else key.split(":")
             if len(split_key) != 2:
-                ValidationError("")
-                continue  # Skip keys that do not match the expected format
-            if not value:
                 continue
 
             prefix, field = split_key
-            field_prefixes = {
-                **base_prefixes,
-                **additional_prefixes,
-            }
+            field_prefixes = {**base_prefixes, **additional_prefixes}
             # Find the key in field_prefixes corresponding to the prefix
             key_of_prefix = next(
                 (key for key, value in field_prefixes.items() if value == prefix), None
             )
 
             if key_of_prefix and field in base_definitions.get(key_of_prefix, []):
-                prefix = f"{key_of_prefix}:{prefix}"
+                target_field = f"{key_of_prefix}:{field}"
                 if key_of_prefix in ["thesis"]:
                     output[prefix] = value
                 else:
                     output[prefix][field] = value
 
-            if key_of_prefix and field in additional_definitions.get(key_of_prefix, []):
-                prefix = f"{prefix}:{field}"
-                output[prefix] = value.split("\n")
+            fields = additional_definitions.get(key_of_prefix, {})
+            if field in fields:
+                # The field has an alias
+                if isinstance(fields, dict):
+                    field = fields[field]
+
+                target_field = f"{prefix}:{field}"
+                output[target_field] = value.split("\n")
 
         # Remove empty dictionaries
-        output = {k: v for k, v in output.items() if v}
+        output = {k: v for k, v in output.items() if v not in ("", [""], {})}
 
         return {"custom_fields": output}
 
