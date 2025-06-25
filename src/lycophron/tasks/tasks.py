@@ -10,10 +10,11 @@ from time import sleep
 
 from inveniordm_py.files.metadata import FilesListMetadata, OutgoingStream
 from inveniordm_py.records.metadata import DraftMetadata
+from inveniordm_py.records.resources import Draft
 from requests.exceptions import HTTPError
 
 from ..logger import logger
-from ..models import FileStatus, RecordStatus
+from ..models import File, FileStatus, Record, RecordStatus
 from . import app
 
 type Status = RecordStatus | FileStatus
@@ -54,7 +55,7 @@ def state_transition(frm: Status | list[Status], to: Status, err: Status):
     to=RecordStatus.DRAFT_CREATED,
     err=RecordStatus.DRAFT_FAILED,
 )
-def create_draft_record(client, record):
+def create_draft_record(client, record: Record):
     draft = client.records.create()
     record.upload_id = draft.data["id"]
     record.response = draft.data
@@ -94,8 +95,8 @@ def update_draft_metadata(client, record: Record, draft: Draft | None = None):
     to=RecordStatus.FILE_UPLOADED,
     err=RecordStatus.FILE_FAILED,
 )
-def upload_record_files(client, record, draft=None):
-    def _sync_files(record, draft):
+def upload_record_files(client, record: Record, draft: Draft | None = None):
+    def _sync_files(record: Record, draft: Draft):
         for local_file in record.files:
             try:
                 rem_file = draft.files(local_file.filename).get()
@@ -112,7 +113,7 @@ def upload_record_files(client, record, draft=None):
                 logger.debug(f"Error getting remote file {local_file.filename=}: {e=}")
                 raise
 
-    if not draft:
+    if draft is None:
         draft = client.records(record.upload_id).draft.get()
 
     _sync_files(record, draft)
@@ -149,7 +150,7 @@ def upload_file(client, file: File, draft: Draft):
     draft.files(file.filename).commit()  # TODO Add retry on upload?
 
 
-def check_file_status(filename, draft):
+def check_file_status(filename, draft: Draft):
     # TODO Can be implemented as property in client
     f = draft.files(filename).get()
     return f.data["status"]
@@ -160,7 +161,7 @@ def check_file_status(filename, draft):
     to=RecordStatus.PUBLISHED,
     err=RecordStatus.PUBLISH_FAILED,
 )
-def publish_record(client, record, draft=None):
+def publish_record(client, record: Record, draft: Draft | None = None):
     draft = draft or client.records(record.upload_id).draft
     res = draft.publish()
     record.response = res.data
@@ -171,7 +172,7 @@ def publish_record(client, record, draft=None):
     to=RecordStatus.COMMUNITIES_ADDED,
     err=RecordStatus.COMMUNITIES_FAILED,
 )
-def add_to_community(client, record, published_record=None):
+def add_to_community(client, record: Record, published_record=None):
     # TODO Return if not to be added to Communities
     if not published_record:
         published_record = client.records(record.upload_id).get()

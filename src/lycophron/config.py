@@ -204,7 +204,6 @@ class Defaults:
             "namePublishedInID",
             "namePublishedInYear",
             "occurrenceID",
-            "occurrenceQuantity",
             "occurrenceStatus",
             "organismQuantity",
             "organismQuantityType",

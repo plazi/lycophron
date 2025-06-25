@@ -49,3 +49,6 @@ extend-select = [
     "UP",
     "FURB",
 ]
+
+[tool.uv.sources]
+inveniordm-py = { git = "https://github.com/inveniosoftware/inveniordm-py" }
