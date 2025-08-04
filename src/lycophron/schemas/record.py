@@ -299,7 +299,11 @@ class Metadata(Schema):
                 )
 
             output[creatibutor_type].append(
-                {"person_or_org": person, "affiliations": affiliations}
+                {
+                    "person_or_org": person,
+                    "affiliations": affiliations,
+                    "role": person.pop("role", None),
+                }
             )
         return output
 

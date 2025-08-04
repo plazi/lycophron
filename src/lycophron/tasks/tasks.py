@@ -81,10 +81,10 @@ def update_draft_metadata(client, record: Record, draft: Draft | None = None):
         draft = client.records(record.upload_id).draft.get()
 
     # Get the record with resolved references
-    resolved_record = lapp.project.db.reference_manager.resolve_references(record)
+    # resolved_record = lapp.project.db.reference_manager.resolve_references(record)
 
     # Use the resolved metadata for the update
-    res = draft.update(data=DraftMetadata(**resolved_record.input_metadata))
+    res = draft.update(data=DraftMetadata(**record.input_metadata))
     record.response = res.data
     if getattr(res.data, "errors", None):
         raise Exception("Metadata update failed")
