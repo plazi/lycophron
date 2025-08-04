@@ -14,10 +14,10 @@ Install from GitHub using [`uv`](https://github.com/astral-sh/uv):
 uv tool install "lycophron @ git+https://github.com/plazi/lycophron@main"
 ```
 
-Alternatively, use [pipx](https://pipx.pypa.io/):
+To upgrade Lycophron:
 
 ```bash
-pipx install "lycophron @ git+https://github.com/plazi/lycophron@main"
+uv tool upgrade lycophron
 ```
 
 ### Initalize a local project
