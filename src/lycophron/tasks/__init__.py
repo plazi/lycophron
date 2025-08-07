@@ -5,6 +5,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 """Lycophron tasks entry point."""
 
+import platform
 from pathlib import Path
 
 from celery import Celery
@@ -30,7 +31,15 @@ def init_celery_app():
     app.conf.task_serializer = "json"
     app.conf.accept_content = ["json"]
     app.conf.task_ignore_result = False
-    app.conf.result_backend = f"file://{str(_backend_folder)}"
+
+    # On Windows, we need to use forward slashes or properly escape the path
+    if platform.system() == "Windows":
+        # Convert Windows path to use forward slashes for the file:// URI
+        backend_path = str(_backend_folder).replace("\\", "/")
+        # Add an extra slash for Windows absolute paths (e.g., file:///C:/Users/...)
+        app.conf.result_backend = f"file:///{backend_path}"
+    else:
+        app.conf.result_backend = f"file://{str(_backend_folder)}"
     app.conf.max_memory_per_child = 100000
     app.conf.update(imports=["lycophron.tasks.tasks"])
     app.conf.beat_schedule = {
