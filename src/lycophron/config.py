@@ -363,8 +363,9 @@ class CFGLoader(ConfigLoader):
 
     def dump(self, dump_data: dict) -> None:
         with open(self.cfg_path, "w") as fp:
-            for key, value in dump_data.items():
-                fp.write(self.deserialize(key, value))
+            fp.writelines(
+                self.deserialize(key, value) for key, value in dump_data.items()
+            )
             fp.close()
 
     def key_exists_in_file(self, key):
