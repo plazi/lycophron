@@ -10,6 +10,10 @@ The tool supports the upload through CSV files that describe each record to be u
 
 Install from GitHub using [`uv`](https://github.com/astral-sh/uv):
 
+> [!NOTE]
+> **Windows users**: You'll also need to have `git` installed. You can download it from [git-scm.com](https://git-scm.com/download/win).
+
+
 ```bash
 uv tool install "lycophron @ git+https://github.com/plazi/lycophron@main"
 ```
