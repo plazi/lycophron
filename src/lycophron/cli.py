@@ -6,7 +6,12 @@
 """Lycophron cli tools."""
 
 import csv
+import signal
+import subprocess
+import sys
+import time
 from itertools import chain
+from multiprocessing import Process
 from pathlib import Path
 
 import click
@@ -107,11 +112,81 @@ def export(file, all):
 @lycophron.command()
 def start():
     """Starts the background worker for publishing records."""
-    click.secho("Records queued for publishing.", fg=INFO_COLOR)
-    from .tasks import app as celery_app
+    click.secho("Starting Celery worker and beat scheduler...", fg=INFO_COLOR)
 
-    argv = ["worker", "--pool=threads", "--beat", "--loglevel=info"]
-    celery_app.worker_main(argv)
+    processes = []
+
+    def signal_handler(signum, frame):
+        """Handle termination signals."""
+        click.secho("\nShutting down Celery processes...", fg="yellow")
+        for proc in processes:
+            if isinstance(proc, subprocess.Popen):
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            elif isinstance(proc, Process):
+                proc.terminate()
+                proc.join(timeout=5)
+                if proc.is_alive():
+                    proc.kill()
+        sys.exit(0)
+
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    if hasattr(signal, "SIGBREAK"):  # Windows
+        signal.signal(signal.SIGBREAK, signal_handler)
+
+    try:
+        # Start Celery worker process
+        worker_cmd = [
+            sys.executable,
+            "-m",
+            "celery",
+            "-A",
+            "lycophron.tasks",
+            "worker",
+            "--pool=threads",
+            "--loglevel=info",
+        ]
+        worker_process = subprocess.Popen(worker_cmd)
+        processes.append(worker_process)
+
+        # Give worker time to start
+        time.sleep(2)
+
+        # Start Celery beat process
+        beat_cmd = [
+            sys.executable,
+            "-m",
+            "celery",
+            "-A",
+            "lycophron.tasks",
+            "beat",
+            "--loglevel=info",
+        ]
+        beat_process = subprocess.Popen(beat_cmd)
+        processes.append(beat_process)
+
+        click.secho(
+            "Celery worker and beat scheduler started successfully.", fg="green"
+        )
+        click.secho("Press Ctrl+C to stop.", fg=INFO_COLOR)
+
+        # Wait for processes
+        while True:
+            # Check if processes are still running
+            for proc in processes:
+                if proc.poll() is not None:
+                    click.secho(f"Process exited with code {proc.returncode}", fg="red")
+                    signal_handler(None, None)
+            time.sleep(1)
+
+    except Exception as e:
+        click.secho(f"Error starting Celery: {e}", fg="red")
+        signal_handler(None, None)
 
 
 @lycophron.command()
