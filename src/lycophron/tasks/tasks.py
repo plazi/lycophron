@@ -74,9 +74,6 @@ def create_draft_record(client, record: Record):
 )
 def update_draft_metadata(client, record: Record, draft: Draft | None = None):
     """Update draft metadata with resolved references."""
-    from lycophron.app import LycophronApp
-
-    lapp = LycophronApp()
     if not draft:
         draft = client.records(record.upload_id).draft.get()
 
