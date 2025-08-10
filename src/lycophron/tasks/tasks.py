@@ -14,7 +14,7 @@ from inveniordm_py.records.resources import Draft
 from requests.exceptions import HTTPError
 
 from ..logger import logger
-from ..models import File, FileStatus, Record, RecordStatus
+from ..models import CommunityStatus, File, FileStatus, Record, RecordStatus
 from . import app
 
 type Status = RecordStatus | FileStatus
@@ -170,10 +170,37 @@ def publish_record(client, record: Record, draft: Draft | None = None):
     err=RecordStatus.COMMUNITIES_FAILED,
 )
 def add_to_community(client, record: Record, published_record=None):
-    # TODO Return if not to be added to Communities
+    if not record.communities:
+        logger.debug(f"No communities to add for record {record.id}")
+        return
+
     if not published_record:
         published_record = client.records(record.upload_id).get()
-    # TODO implement add to community, and use Community Table
+
+    community_slugs = [
+        community.slug
+        for community in record.communities
+        if community.status == CommunityStatus.TODO
+    ]
+
+    if not community_slugs:
+        logger.debug(f"No pending communities to add for record {record.id}")
+        return
+
+    logger.debug(f"Adding record {record.id} to communities: {community_slugs}")
+
+    communities_resource = client.records(record.upload_id).communities
+    result = communities_resource.add(community_slugs)
+
+    for community in record.communities:
+        if community.slug in community_slugs:
+            community.status = CommunityStatus.REQUEST_CREATED
+
+    logger.info(
+        f"Successfully submitted community requests for record {record.id}: "
+        f"{community_slugs}"
+    )
+    return result
 
 
 @app.task
@@ -218,7 +245,7 @@ def process_record(record_id):
             update_draft_metadata(client, db_record, draft=draft)
             upload_record_files(client, db_record, draft=draft)
             publish_record(client, db_record, draft=draft)
-            # add_to_community(client, db_record)
+            add_to_community(client, db_record)
         except HTTPError as e:
             logger.error(f"Error processing record {db_record.id=}: {e=}")
             if e.response.status_code == 429:
