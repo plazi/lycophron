@@ -6,6 +6,7 @@
 """Test Lycophron CLI commands."""
 
 import csv
+import json
 import os
 import sqlite3
 import tempfile
@@ -283,7 +284,7 @@ def test_load_db_objects():
         assert record["id"] == "record1"
 
         # Verify input_metadata
-        metadata = eval(record["input_metadata"])
+        metadata = json.loads(record["input_metadata"])
         assert metadata["metadata"]["title"] == "Test Record"
         assert metadata["metadata"]["publication_date"] == "2023-01-01"
         assert metadata["metadata"]["resource_type"]["id"] == "image"
@@ -405,13 +406,13 @@ def test_load_multiple_records():
         # Verify first record metadata
         cursor.execute("SELECT * FROM record WHERE id = ?", ("record1",))
         record1 = cursor.fetchone()
-        metadata1 = eval(record1["input_metadata"])
+        metadata1 = json.loads(record1["input_metadata"])
         assert metadata1["metadata"]["title"] == "First Record"
 
         # Verify second record metadata
         cursor.execute("SELECT * FROM record WHERE id = ?", ("record2",))
         record2 = cursor.fetchone()
-        metadata2 = eval(record2["input_metadata"])
+        metadata2 = json.loads(record2["input_metadata"])
         assert metadata2["metadata"]["title"] == "Second Record"
         assert metadata2["metadata"]["resource_type"]["id"] == "publication"
         assert (
@@ -530,7 +531,7 @@ def test_load_update_record():
 
         cursor.execute("SELECT * FROM record WHERE id = ?", ("record1",))
         record = cursor.fetchone()
-        metadata = eval(record["input_metadata"])
+        metadata = json.loads(record["input_metadata"])
 
         # Check updated fields
         assert metadata["metadata"]["title"] == "Updated Title"
