@@ -12,6 +12,7 @@ import tempfile
 from pathlib import Path
 
 from click.testing import CliRunner
+from conftest import init
 
 from lycophron.cli import lycophron
 
@@ -21,10 +22,7 @@ def test_init_command_with_name():
     runner = CliRunner()
     with tempfile.TemporaryDirectory() as tmpdir:
         os.chdir(tmpdir)
-        result = runner.invoke(lycophron, ["init", "testproject"])
-
-        assert result.exit_code == 0
-        assert "Project initialized in directory" in result.output
+        init(runner, project_name="testproject")
 
         # Verify project structure
         project_dir = Path(tmpdir) / "testproject"
@@ -39,11 +37,7 @@ def test_init_command_default_directory():
     runner = CliRunner()
     with tempfile.TemporaryDirectory() as tmpdir:
         os.chdir(tmpdir)
-        # Skip the token prompt by providing an empty token
-        result = runner.invoke(lycophron, ["init", "--token", ""])
-
-        assert result.exit_code == 0
-        assert "Project initialized in directory" in result.output
+        init(runner)
 
         # Verify project structure
         assert (Path(tmpdir) / "files").exists()
@@ -56,10 +50,7 @@ def test_init_command_with_token():
     runner = CliRunner()
     with tempfile.TemporaryDirectory() as tmpdir:
         os.chdir(tmpdir)
-        result = runner.invoke(lycophron, ["init", "--token", "test_token123"])
-
-        assert result.exit_code == 0
-        assert "Project initialized in directory" in result.output
+        init(runner, token="test_token123")
 
         # Verify token in config
         config_path = Path(tmpdir) / "lycophron.cfg"
@@ -77,7 +68,7 @@ def test_new_template_default():
         os.chdir(tmpdir)
 
         # Initialize project first
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Generate template
         result = runner.invoke(lycophron, ["new-template"])
@@ -105,7 +96,7 @@ def test_new_template_with_options():
         os.chdir(tmpdir)
 
         # Initialize project first
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Generate template with options
         custom_path = os.path.join(tmpdir, "custom_template.csv")
@@ -146,7 +137,7 @@ def test_new_template_minimal():
         os.chdir(tmpdir)
 
         # Initialize project first
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Generate minimal template
         result = runner.invoke(lycophron, ["new-template", "--minimal"])
@@ -178,7 +169,7 @@ def test_load_command():
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Create a simple CSV file with required fields
         csv_path = os.path.join(tmpdir, "test_data.csv")
@@ -225,7 +216,7 @@ def test_load_db_objects():
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Create test file
         files_dir = Path(tmpdir) / "files"
@@ -335,7 +326,7 @@ def test_load_multiple_records():
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Create CSV file with multiple records
         csv_path = os.path.join(tmpdir, "test_multi.csv")
@@ -438,7 +429,7 @@ def test_load_update_record():
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Create initial CSV file
         csv_path = os.path.join(tmpdir, "initial.csv")
