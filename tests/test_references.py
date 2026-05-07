@@ -10,9 +10,9 @@ import tempfile
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
+from conftest import init
 
 from lycophron.app import LycophronApp
-from lycophron.cli import lycophron
 from lycophron.models import Record, RecordStatus, Reference
 from lycophron.template import LazyReference, TemplateEngine
 
@@ -79,7 +79,7 @@ def test_bidirectional_references():
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
 
         # Create test records with bidirectional references
         app = LycophronApp()
@@ -305,7 +305,7 @@ def test_two_phase_processing(mock_publish, mock_upload, mock_update, mock_creat
         os.chdir(tmpdir)
 
         # Initialize project
-        runner.invoke(lycophron, ["init"])
+        init(runner)
         app = LycophronApp()
 
         # Mock draft creation to set upload_id
