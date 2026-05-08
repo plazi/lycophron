@@ -43,7 +43,7 @@ def init_celery_app():
     app.conf.max_memory_per_child = 100000
     app.conf.update(imports=["lycophron.tasks.tasks"])
     app.conf.beat_schedule = {
-        "record-dispathcer": {
+        "record-dispatcher": {
             "task": "lycophron.tasks.tasks.record_dispatcher",
             "schedule": 5,
             "args": (20,),

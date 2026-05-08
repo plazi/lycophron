@@ -54,7 +54,7 @@ class DatabaseNotFound(DatabaseError):
 
 
 class DatabaseResourceNotModified(DatabaseError):
-    message = "Datbase resource not modified."
+    message = "Database resource not modified."
 
 
 class RecordError(LycophronError):
