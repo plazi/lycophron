@@ -157,7 +157,7 @@ def test_bidirectional_references():
         assert len(specimen_refs) == 1
         assert specimen_refs[0].target_record_id == "figure1"
         assert specimen_refs[0].target_field == "doi"
-        assert specimen_refs[0].bidirectional == "True"
+        assert specimen_refs[0].bidirectional
 
 
 def test_reference_parsing_without_schema():
