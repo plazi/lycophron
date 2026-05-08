@@ -24,9 +24,9 @@ To upgrade Lycophron:
 uv tool upgrade lycophron
 ```
 
-### Initalize a local project
+### Initialize a local project
 
-Let's initalize a local project named `monkeys`:
+Let's initialize a local project named `monkeys`:
 
 ```bash
 lycophron init monkeys
@@ -173,7 +173,7 @@ This command validates the current project. I.e. it checks whether the applicati
 
 **new-template**
 
-This command generates a CSV file from the default template, containing all the required headers. The template can either be generated with all the fields or by explicitely adding custom fields on top of the required ones.
+This command generates a CSV file from the default template, containing all the required headers. The template can either be generated with all the fields or by explicitly adding custom fields on top of the required ones.
 
 `new-template --file`                                       : creates the output file in the given path and name.
 `new-template --all`                                        : creates a template using all fields (required and custom fields).
