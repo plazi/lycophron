@@ -65,7 +65,7 @@ class ReferenceManager:
                 target_record_id=ref["target_record_id"],
                 source_field=ref["source_field"],
                 target_field=ref["target_field"],
-                bidirectional=str(ref["bidirectional"]),
+                bidirectional=ref["bidirectional"],
             )
             self.session.add(reference)
 
