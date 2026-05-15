@@ -42,6 +42,7 @@ class Metadata(Schema):
         original_identifiers = original.get("related_identifiers.identifier", "")
         identifiers = original_identifiers.split("\n") if original_identifiers else []
 
+        schemes = original.get("related_identifiers.scheme", "").splitlines()
         relation_types = [
             # relation types need to be lowercase
             rel.lower()
@@ -55,13 +56,14 @@ class Metadata(Schema):
 
         # Determine the number of related identifiers
         num_identifiers = max(
-            len(identifiers), len(relation_types), len(resource_types)
+            len(identifiers), len(schemes), len(relation_types), len(resource_types)
         )
 
         for i in range(num_identifiers):
             related_identifier = {}
 
             identifier = identifiers[i].strip() if i < len(identifiers) else ""
+            scheme = schemes[i].strip() if i < len(schemes) else ""
             relation_type = relation_types[i].strip() if i < len(relation_types) else ""
             resource_type = resource_types[i].strip() if i < len(resource_types) else ""
 
@@ -72,6 +74,8 @@ class Metadata(Schema):
 
             if identifier:
                 related_identifier["identifier"] = identifier
+            if scheme:
+                related_identifier["scheme"] = scheme
             if relation_type:
                 related_identifier["relation_type"] = {"id": relation_type}
             if resource_type:
@@ -93,11 +97,26 @@ class Metadata(Schema):
 
         # Extract the identifiers from the original data
         identifiers_input = original.get("identifiers.identifier", "")
+        identifiers = identifiers_input.split("\n") if identifiers_input else []
 
-        # Split the identifiers by '\n' and process each
-        for identifier in identifiers_input.split("\n"):
-            if identifier.strip():  # Check if the identifier is not empty
-                output["identifiers"].append({"identifier": identifier.strip()})
+        schemes = original.get("identifiers.scheme", "").splitlines()
+
+        # Determine the number of identifiers
+        num_identifiers = max(len(identifiers), len(schemes))
+
+        for i in range(num_identifiers):
+            identifier_entry = {}
+
+            identifier = identifiers[i].strip() if i < len(identifiers) else ""
+            scheme = schemes[i].strip() if i < len(schemes) else ""
+
+            if identifier:
+                identifier_entry["identifier"] = identifier
+            if scheme:
+                identifier_entry["scheme"] = scheme
+
+            if identifier:
+                output["identifiers"].append(identifier_entry)
 
         return output
 

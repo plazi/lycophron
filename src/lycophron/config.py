@@ -94,9 +94,9 @@ class Defaults:
         "version",
         "publisher",
         "identifiers.identifier",
-        # "identifiers.scheme",  # Auto guessed
+        "identifiers.scheme",  # Can be automatically guessed
         "related_identifiers.identifier",
-        # "related_identifiers.scheme",  # Auto guessed
+        "related_identifiers.scheme",  # Can be automatically guessed
         "related_identifiers.relation_type.id",
         "related_identifiers.resource_type.id",
         # "funding.funder.id",
