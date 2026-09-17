@@ -286,7 +286,7 @@ wheels = [
 [[package]]
 name = "inveniordm-py"
 version = "0.1.1"
-source = { git = "https://github.com/inveniosoftware/inveniordm-py#ca028664c605fa45ddb92e984d6da19acc68d03b" }
+source = { git = "https://github.com/julia-sprenger/inveniordm-py?branch=add%2Fcommunities#2c21a085189962ce875a6a492e513031d21b752f" }
 dependencies = [
     { name = "requests" },
 ]
@@ -357,7 +357,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "colorlog", specifier = ">=6.8.2,<7.0.0" },
     { name = "idutils", specifier = ">=1.2.1" },
-    { name = "inveniordm-py", git = "https://github.com/inveniosoftware/inveniordm-py" },
+    { name = "inveniordm-py", git = "https://github.com/julia-sprenger/inveniordm-py?branch=add%2Fcommunities" },
     { name = "jinja2", specifier = ">=3.1.3" },
     { name = "marshmallow", specifier = ">=3.20.1,<4.0.0" },
     { name = "pywin32", marker = "sys_platform == 'win32'", specifier = ">=311" },

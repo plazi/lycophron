@@ -52,4 +52,4 @@ extend-select = [
 ]
 
 [tool.uv.sources]
-inveniordm-py = { git = "https://github.com/inveniosoftware/inveniordm-py" }
+inveniordm-py = { git = "https://github.com/julia-sprenger/inveniordm-py", branch = "add/communities" }
